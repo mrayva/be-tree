@@ -29,3 +29,23 @@ domains.txt
 perf.md
 *.swp
 olddata/*
+
+# CMake build artifacts
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+CTestTestfile.cmake
+_deps/
+*.cmake
+!CMakeLists.txt
+cmake-build-*/
+
+# vcpkg
+vcpkg_installed/
+.vs/
+
+# Test executables
+testbenchmark
+testbenchmark_err
+

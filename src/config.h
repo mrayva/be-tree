@@ -8,6 +8,10 @@
 #include "map.h"
 #include "var.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct attr_domain {
     struct attr_var attr_var;
     struct value_bound bound;
@@ -104,3 +108,7 @@ struct attr_var make_attr_var(const char* attr, struct config* config);
 struct attr_var copy_attr_var(struct attr_var attr_var);
 void free_attr_var(struct attr_var attr_var);
 
+
+#ifdef __cplusplus
+}
+#endif

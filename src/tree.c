@@ -1940,8 +1940,14 @@ void event_to_string(const struct betree_event* event, char* buffer)
     buffer[length] = '\0';
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int parse(const char* text, struct ast_node** node);
 int event_parse(const char* text, struct betree_event** event);
+#ifdef __cplusplus
+}
+#endif
 
 struct memoize make_memoize(size_t pred_count)
 {
@@ -2276,10 +2282,10 @@ void fill_event(const struct config* config, struct betree_event* event)
                 for(size_t j = 0; j < pred->value.frequency_caps_value->size; j++) {
                     betree_str_t str = try_get_id_for_string(config,
                         pred->attr_var,
-                        pred->value.frequency_caps_value->content[j]->namespace.string);
-                    pred->value.frequency_caps_value->content[j]->namespace.var
+                        pred->value.frequency_caps_value->content[j]->ns.string);
+                    pred->value.frequency_caps_value->content[j]->ns.var
                         = pred->attr_var.var;
-                    pred->value.frequency_caps_value->content[j]->namespace.str = str;
+                    pred->value.frequency_caps_value->content[j]->ns.str = str;
                 }
                 break;
             }

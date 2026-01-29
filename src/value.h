@@ -5,6 +5,12 @@
 #include <stdlib.h>
 
 #include "betree.h"
+// Note: C++ keyword conflicts (e.g., 'ns') are handled via compiler flags for now
+// #include "compat_keywords.h"  // Commented out - causing issues, to be addressed in future work
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef uint64_t betree_var_t;
 static const betree_var_t INVALID_VAR = UINT64_MAX;
@@ -64,7 +70,7 @@ enum frequency_type_e {
 struct betree_frequency_cap {
     enum frequency_type_e type;
     uint32_t id;
-    struct string_value namespace;
+    struct string_value ns;
     bool timestamp_defined;
     int64_t timestamp;
     uint32_t value;
@@ -126,13 +132,13 @@ void add_frequency(struct betree_frequency_cap* frequency, struct betree_frequen
 struct betree_segment* make_segment(int64_t id, int64_t timestamp);
 struct betree_frequency_cap* make_frequency_cap(const char* stype,
     uint32_t id,
-    struct string_value namespace,
+    struct string_value ns,
     bool timestamp_defined,
     int64_t timestamp,
     uint32_t value);
 struct betree_frequency_cap* make_frequency_cap_with_type(enum frequency_type_e type,
     uint32_t id,
-    struct string_value namespace,
+    struct string_value ns,
     bool timestamp_defined,
     int64_t timestamp,
     uint32_t value);
@@ -156,4 +162,8 @@ void sort_and_remove_duplicate_integer_list(struct betree_integer_list* list);
 void remove_duplicates_string_list(struct betree_string_list* list);
 void sort_string_list(struct betree_string_list* list);
 void sort_and_remove_duplicate_string_list(struct betree_string_list* list);
+
+#ifdef __cplusplus
+}
+#endif
 

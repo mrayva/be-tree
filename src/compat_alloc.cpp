@@ -10,13 +10,13 @@
 
 extern "C" {
 
-void* bmalloc(size_t size) {
+void* bmalloc_impl(size_t size) {
     if (size == 0) return nullptr;
     void* ptr = ::operator new(size, std::nothrow);
     return ptr;
 }
 
-void* bcalloc(size_t size) {
+void* bcalloc_impl(size_t size) {
     if (size == 0) return nullptr;
     void* ptr = ::operator new(size, std::nothrow);
     if (ptr != nullptr) {
@@ -25,7 +25,7 @@ void* bcalloc(size_t size) {
     return ptr;
 }
 
-void* brealloc(void* ptr, size_t size) {
+void* brealloc_impl(void* ptr, size_t size) {
     if (size == 0) {
         if (ptr != nullptr) {
             ::operator delete(ptr);
@@ -34,7 +34,7 @@ void* brealloc(void* ptr, size_t size) {
     }
     
     if (ptr == nullptr) {
-        return bmalloc(size);
+        return bmalloc_impl(size);
     }
     
     // For realloc, we need to allocate new memory, copy, and free old
@@ -52,22 +52,13 @@ void* brealloc(void* ptr, size_t size) {
     return new_ptr;
 }
 
-void bfree(void* ptr) {
+void bfree_impl(void* ptr) {
     if (ptr != nullptr) {
         ::operator delete(ptr);
     }
 }
 
-char* bstrdup(const char* s1) {
-    if (s1 == nullptr) return nullptr;
-    
-    size_t size = std::strlen(s1) + 1;
-    char* str = static_cast<char*>(bmalloc(size));
-    if (str != nullptr) {
-        std::memcpy(str, s1, size);
-    }
-    return str;
-}
+// Note: bstrdup, bvasprintf, and basprintf are provided by alloc.c
 
 }  // extern "C"
 

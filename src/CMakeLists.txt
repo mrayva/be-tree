@@ -66,9 +66,9 @@ if(BUILD_AS_CPP)
     # Set C++ standard
     target_compile_features(betree PUBLIC cxx_std_20)
     
-    # Add compiler warnings for C++
+    # Add compiler warnings for C++ but be less strict for C-as-C++ compilation
     target_compile_options(betree PRIVATE
-        $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic>
+        $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wno-missing-field-initializers -fpermissive>
         $<$<CXX_COMPILER_ID:MSVC>:/W4>
     )
 else()

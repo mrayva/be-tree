@@ -1,5 +1,11 @@
 #pragma once
 
+#ifdef __cplusplus
+// When compiling as C++, use the C++ version
+#include "utils.hpp"
+#else
+// Original C declarations
+
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -22,4 +28,6 @@ int iecmpfunc(const void *a, const void *b);
 
 #define likely(x)       __builtin_expect((x),1)
 #define unlikely(x)     __builtin_expect((x),0)
+
+#endif  // __cplusplus
 

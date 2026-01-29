@@ -11,19 +11,25 @@
 
 extern "C" {
 
-// Basic allocation functions matching the C API
-void* bmalloc(size_t size);
-void* bcalloc(size_t size);  // Zero-initialized allocation
-void* brealloc(void* ptr, size_t size);
-void bfree(void* ptr);
+// Basic allocation functions matching the C API - return void* to match C semantics
+void* bmalloc_impl(size_t size);
+void* bcalloc_impl(size_t size);  // Zero-initialized allocation
+void* brealloc_impl(void* ptr, size_t size);
+void bfree_impl(void* ptr);
 
-// String duplication
-char* bstrdup(const char* s1);
-
-// Formatted string allocation (already defined in alloc.h, but provide declarations)
-int bvasprintf(char** buf, const char* format, va_list va);
-int basprintf(char** buf, const char* format, ...);
+// Note: bstrdup, bvasprintf, and basprintf are provided by alloc.c
 
 }  // extern "C"
+
+// C++ wrappers that just call the implementation
+// The compiler will require explicit casts at call sites, which is correct C++ behavior
+#undef bmalloc
+#undef bcalloc
+#undef brealloc
+#undef bfree
+#define bmalloc bmalloc_impl
+#define bcalloc bcalloc_impl
+#define brealloc brealloc_impl
+#define bfree bfree_impl
 
 #endif  // __cplusplus

@@ -5,18 +5,20 @@
 #include <stdlib.h>
 
 #include "tree.h"
+// Note: C++ keyword conflicts (e.g., 'ns') are handled via compiler flags for now
+// #include "compat_keywords.h"  // Commented out - causing issues, to be addressed in future work
 
 bool within_frequency_caps(const struct betree_frequency_caps* caps,
     enum frequency_type_e type,
     uint32_t id,
-    const struct string_value namespace,
+    const struct string_value ns,
     uint32_t value,
     size_t length,
     int64_t now);
 bool within_frequency_caps_counting(const struct betree_frequency_caps* caps,
     enum frequency_type_e type,
     uint32_t id,
-    const struct string_value namespace,
+    const struct string_value ns,
     uint32_t value,
     size_t length,
     int64_t now, int* ops_count);

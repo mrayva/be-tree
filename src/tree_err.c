@@ -1405,7 +1405,13 @@ struct betree_sub* find_sub_id_err(betree_sub_t id, struct cnode_err* cnode)
     return NULL;
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int event_parse(const char* text, struct betree_event** event);
+#ifdef __cplusplus
+}
+#endif
 
 betree_var_t find_pnode_attr_name(struct cdir_err* cdir)
 {

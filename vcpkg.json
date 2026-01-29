@@ -1,0 +1,11 @@
+{
+  "name": "be-tree",
+  "version": "0.1.0",
+  "description": "Boolean Expression Tree - fast evaluation of large numbers of boolean expressions",
+  "dependencies": [
+    "fmt",
+    "ms-gsl"
+  ],
+  "builtin-baseline": "c8696863d371ab7f46545af3d3c3f3e8eb1c61a4",
+  "overrides": []
+}

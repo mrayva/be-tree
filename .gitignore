@@ -29,3 +29,13 @@ domains.txt
 perf.md
 *.swp
 olddata/*
+
+# CMake build artifacts
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile.cmake
+*.cmake
+
+# vcpkg
+vcpkg_installed/

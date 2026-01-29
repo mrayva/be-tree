@@ -41,10 +41,16 @@ set(BETREE_GENERATED_SOURCES
 )
 
 # C++ source files (converted modules)
-# NOTE: debug.cpp is currently not used due to C++ keyword conflicts in headers (e.g., 'namespace' in value.h)
-# Future converted modules without such conflicts can be added here
+# NOTE: Example conversions are in examples/ directory for reference.
+# Modules cannot be converted until headers are refactored to avoid C++ keywords
+# (e.g., 'namespace' field in value.h must be renamed before C++ conversion is possible).
+# When ready to convert a module:
+# 1. Complete header refactoring
+# 2. Add the converted .cpp file here
+# 3. Remove the corresponding .c file from BETREE_C_SOURCES
 set(BETREE_CPP_SOURCES
-    # debug.cpp  # Temporarily disabled - see note above
+    # Future converted C++ modules will be listed here
+    # Example: debug.cpp (see examples/README.md for reference implementation)
 )
 
 # Compatibility shim for C++ compilation

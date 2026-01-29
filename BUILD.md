@@ -64,6 +64,8 @@ cmake --build .
 
 vcpkg is a cross-platform package manager that simplifies dependency management.
 
+The dependencies declared in `vcpkg.json` (fmt, ms-gsl, catch2) are currently not used by the C codebase. They are reserved for future C++ modules that will leverage modern C++ libraries. When converting modules to C++, these libraries will be available for use.
+
 ### 1. Install vcpkg
 ```bash
 # Clone vcpkg repository
@@ -145,14 +147,14 @@ cmake .. -DBUILD_AS_CPP=OFF
 ```
 
 When `BUILD_AS_CPP=ON`:
-- Library sources are compiled as C++20
+- C++ modules and compatibility shim are compiled as C++20
+- Existing C sources remain compiled as C11 to avoid keyword conflicts
 - Compatibility shim (`compat_alloc.cpp`) provides C++-friendly allocation wrappers
-- Converted modules (like `debug.cpp`) use modern C++ features
+- Converted modules can use modern C++ features
 - Generated lex/yacc files remain compiled as C for compatibility
 
 When `BUILD_AS_CPP=OFF`:
-- Library sources are compiled as standard C11
-- Original `debug.c` is used instead of the C++ version
+- All sources are compiled as standard C11
 - No C++ dependencies are required
 
 ### CMAKE_BUILD_TYPE
@@ -275,28 +277,40 @@ This CMake build system is designed for incremental migration to modern C++:
 
 - **Infrastructure Ready**: CMake build system, vcpkg manifest, and C++ compatibility shim are in place
 - **C++ Support**: C++20 standard enabled, compatibility allocation wrappers implemented
-- **Module Conversion**: A demonstration C++ module (`debug.cpp`) has been created showing the conversion pattern
-- **Known Limitation**: Some header files use C++ keywords (e.g., `namespace` in `value.h`), preventing immediate compilation of certain modules as C++. These will require header refactoring before module conversion.
+- **Example Conversions**: Reference C++ conversions available in `examples/` directory
+- **Known Limitation**: Header files use C++ keywords (e.g., `namespace` in `value.h`), preventing module conversion until headers are refactored
 
 ### Migration Strategy
 
 The recommended approach for converting modules to C++ is:
 
-1. **Header Compatibility**: First, ensure headers don't use C++ keywords (rename `namespace` to `ns` or similar)
-2. **Individual Modules**: Convert modules one at a time, starting with utility modules
+1. **Header Compatibility** (Phase 1): Refactor headers to avoid C++ keywords
+   - Rename `namespace` → `ns` or `namespace_id`
+   - Add `extern "C"` guards where needed
+   - Ensure headers can be included from C++ code
+
+2. **Individual Modules** (Phase 2): Convert modules one at a time
+   - Start with utility modules (examples in `examples/` directory)
+   - Follow the pattern shown in `examples/debug.cpp`
+   - Update `src/CMakeLists.txt` to include converted modules
+
 3. **Testing**: Verify each converted module works correctly before moving to the next
+
 4. **RAII Patterns**: Use std::string, std::vector, std::unique_ptr for memory management
+
 5. **extern "C"**: Wrap public APIs with `extern "C"` for C linkage where needed
 
 ### Example: debug.cpp
 
-The `debug.cpp` file demonstrates modern C++ conversion patterns:
+The `examples/debug.cpp` file demonstrates modern C++ conversion patterns:
 - Use of std::string for string manipulation
 - static_cast/const_cast for type safety
 - nullptr instead of NULL
 - C++ STL containers where appropriate
 
-Once header compatibility issues are resolved, this module can be fully integrated by uncommenting it in `src/CMakeLists.txt`.
+See `examples/README.md` for detailed conversion guidelines and checklist.
+
+Once header refactoring is complete, converted modules can be activated by moving them from `examples/` to `src/` and uncommenting them in `src/CMakeLists.txt`.
 
 ## Further Information
 

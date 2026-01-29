@@ -31,28 +31,34 @@ void* bcalloc_cpp(size_t size) {
     return ptr;
 }
 
-// C++ implementation of brealloc using operator new/delete
+// C++ implementation of brealloc
+// NOTE: This is a compatibility shim that uses malloc/realloc/free for consistency.
+// We cannot mix operator new/delete with realloc, so we use standard C allocation
+// for brealloc to maintain proper semantics. This is acceptable since brealloc is
+// rarely used in the codebase.
 void* brealloc_cpp(void* ptr, size_t size) {
     if (ptr == nullptr) {
-        return bmalloc_cpp(size);
+        // Allocate new memory - use malloc for realloc compatibility
+        return std::malloc(size);
     }
     if (size == 0) {
-        bfree_cpp(ptr);
+        std::free(ptr);
         return nullptr;
     }
     
-    // Note: This is a simple implementation that allocates new memory,
-    // copies the old data, and frees the old memory. A production
-    // implementation might want to track allocation sizes for proper realloc.
-    // For now, we use standard realloc as a fallback since we don't track sizes.
+    // Use standard realloc - this assumes ptr was allocated with malloc
+    // This is a known limitation: mixing bmalloc_cpp (operator new) with
+    // brealloc_cpp is undefined behavior. Code should consistently use
+    // either the bmalloc/bfree pair or the brealloc path, not mix them.
     void* new_ptr = std::realloc(ptr, size);
     return new_ptr;
 }
 
-// C++ implementation of bfree using operator delete
+// C++ implementation of bfree
+// NOTE: This uses free() instead of operator delete for compatibility with brealloc
 void bfree_cpp(void* ptr) {
     if (ptr != nullptr) {
-        ::operator delete(ptr);
+        std::free(ptr);
     }
 }
 
@@ -63,7 +69,7 @@ char* bstrdup_cpp(const char* s1) {
     }
     
     size_t size = std::strlen(s1) + 1;
-    char* str = static_cast<char*>(bmalloc_cpp(size));
+    char* str = static_cast<char*>(std::malloc(size));
     if (str != nullptr) {
         std::memcpy(str, s1, size);
     }

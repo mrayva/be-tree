@@ -36,6 +36,9 @@ CMakeCache.txt
 cmake_install.cmake
 Makefile.cmake
 *.cmake
+build-c/
+build-cpp/
+build/
 
 # vcpkg
 vcpkg_installed/

@@ -271,7 +271,32 @@ This CMake build system is designed for incremental migration to modern C++:
 3. **Legacy Support**: Original Makefile remains fully functional
 4. **Modern Dependencies**: vcpkg integration allows easy use of modern C++ libraries
 
-The `debug` module has been converted to C++ as a demonstration. Future modules can follow the same pattern.
+### Current Status
+
+- **Infrastructure Ready**: CMake build system, vcpkg manifest, and C++ compatibility shim are in place
+- **C++ Support**: C++20 standard enabled, compatibility allocation wrappers implemented
+- **Module Conversion**: A demonstration C++ module (`debug.cpp`) has been created showing the conversion pattern
+- **Known Limitation**: Some header files use C++ keywords (e.g., `namespace` in `value.h`), preventing immediate compilation of certain modules as C++. These will require header refactoring before module conversion.
+
+### Migration Strategy
+
+The recommended approach for converting modules to C++ is:
+
+1. **Header Compatibility**: First, ensure headers don't use C++ keywords (rename `namespace` to `ns` or similar)
+2. **Individual Modules**: Convert modules one at a time, starting with utility modules
+3. **Testing**: Verify each converted module works correctly before moving to the next
+4. **RAII Patterns**: Use std::string, std::vector, std::unique_ptr for memory management
+5. **extern "C"**: Wrap public APIs with `extern "C"` for C linkage where needed
+
+### Example: debug.cpp
+
+The `debug.cpp` file demonstrates modern C++ conversion patterns:
+- Use of std::string for string manipulation
+- static_cast/const_cast for type safety
+- nullptr instead of NULL
+- C++ STL containers where appropriate
+
+Once header compatibility issues are resolved, this module can be fully integrated by uncommenting it in `src/CMakeLists.txt`.
 
 ## Further Information
 

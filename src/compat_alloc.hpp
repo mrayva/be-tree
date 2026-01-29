@@ -26,16 +26,26 @@ char* bstrdup_cpp(const char* s1);
 } // extern "C"
 
 // When compiling as C++, redefine the allocation macros to use C++ implementations
+// Note: We use inline functions instead of macros to provide better type safety
 #ifndef NIF
+
 #undef bmalloc
 #undef bcalloc
 #undef brealloc
 #undef bfree
 
-#define bmalloc bmalloc_cpp
-#define bcalloc bcalloc_cpp
-#define brealloc brealloc_cpp
-#define bfree bfree_cpp
+// Use inline functions to preserve type safety in C++
+inline void* bmalloc(size_t size) { return bmalloc_cpp(size); }
+inline void* bcalloc(size_t size) { return bcalloc_cpp(size); }
+inline void* brealloc(void* ptr, size_t size) { return brealloc_cpp(ptr, size); }
+inline void bfree(void* ptr) { bfree_cpp(ptr); }
+
+// Override bstrdup as well for completeness
+#ifdef bstrdup
+#undef bstrdup
 #endif
+inline char* bstrdup(const char* s1) { return bstrdup_cpp(s1); }
+
+#endif // NIF
 
 #endif // __cplusplus

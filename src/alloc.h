@@ -20,3 +20,8 @@ char* bstrdup(const char *s1);
 int bvasprintf(char **buf, const char *format, va_list va);
 int basprintf(char **buf, const char *format, ...);
 
+// Include C++ compatibility shim when compiling as C++
+// This must come after the macro definitions above
+#ifdef __cplusplus
+#include "compat_alloc.hpp"
+#endif

@@ -1,8 +1,8 @@
 # Source files for betree library
 
-# List of core C source files (excluding generated ones)
+# List of core C source files (excluding generated ones and allocation layer)
+# alloc.c is kept separate as it must remain as C
 set(BETREE_C_SOURCES
-    alloc.c
     ast.c
     ast_compare.c
     ast_err.c
@@ -26,6 +26,11 @@ set(BETREE_C_SOURCES
     var.c
 )
 
+# Allocation layer - must remain as C for compatibility
+set(BETREE_ALLOC_SOURCES
+    alloc.c
+)
+
 # Generated files from lex/yacc (these must remain as C)
 # Note: These files should be generated before building
 set(BETREE_GENERATED_SOURCES
@@ -36,8 +41,10 @@ set(BETREE_GENERATED_SOURCES
 )
 
 # C++ source files (converted modules)
+# NOTE: debug.cpp is currently not used due to C++ keyword conflicts in headers (e.g., 'namespace' in value.h)
+# Future converted modules without such conflicts can be added here
 set(BETREE_CPP_SOURCES
-    debug.cpp
+    # debug.cpp  # Temporarily disabled - see note above
 )
 
 # Compatibility shim for C++ compilation
@@ -54,47 +61,72 @@ endforeach()
 
 # Create the betree library
 if(BUILD_AS_CPP)
-    # When building as C++, compile C sources as C++ (except generated files)
+    # When building as C++, we use a mixed approach:
+    # - Keep all C sources as C for compatibility (C++ keyword conflicts prevent direct compilation)
+    # - Add C++ compatibility shim for future C++ modules
+    # - Include converted C++ modules when ready (currently none due to header compatibility)
+    # This provides the infrastructure for incremental migration
     set(ALL_SOURCES
+        ${BETREE_ALLOC_SOURCES}
         ${BETREE_C_SOURCES}
         ${BETREE_CPP_SOURCES}
         ${BETREE_COMPAT_SOURCES}
         ${BETREE_GENERATED_SOURCES}
+        debug.c  # Using C version for now
     )
     
     add_library(betree STATIC ${ALL_SOURCES})
     
-    # Set C sources to compile as C++, except for generated files
+    # Only compile the C++ sources and compat shim as C++
+    # Keep C sources as C for compatibility
     set_source_files_properties(
-        ${BETREE_C_SOURCES}
         ${BETREE_CPP_SOURCES}
         ${BETREE_COMPAT_SOURCES}
         PROPERTIES LANGUAGE CXX
     )
     
-    # Force generated files to remain as C
+    # Explicitly mark C sources as C (default but explicit for clarity)
     set_source_files_properties(
+        ${BETREE_ALLOC_SOURCES}
+        ${BETREE_C_SOURCES}
         ${BETREE_GENERATED_SOURCES}
         PROPERTIES LANGUAGE C
     )
     
-    # Set C++ standard
+    # Set C++ standard for C++ files
     target_compile_features(betree PUBLIC cxx_std_20)
     
     # Add compiler warnings for C++
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         target_compile_options(betree PRIVATE
-            -Wall
-            -Wextra
-            -Wpedantic
-            -Wno-deprecated-declarations
+            $<$<COMPILE_LANGUAGE:CXX>:-Wall>
+            $<$<COMPILE_LANGUAGE:CXX>:-Wextra>
+            $<$<COMPILE_LANGUAGE:CXX>:-Wpedantic>
+            $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-declarations>
             $<$<COMPILE_LANGUAGE:CXX>:-Wno-old-style-cast>
             $<$<COMPILE_LANGUAGE:CXX>:-Wno-zero-as-null-pointer-constant>
+        )
+    endif()
+    
+    # Add compiler warnings for C
+    if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(betree PRIVATE
+            $<$<COMPILE_LANGUAGE:C>:-Wall>
+            $<$<COMPILE_LANGUAGE:C>:-Wextra>
+            $<$<COMPILE_LANGUAGE:C>:-Wpedantic>
+            $<$<COMPILE_LANGUAGE:C>:-Wshadow>
+            $<$<COMPILE_LANGUAGE:C>:-Wfloat-equal>
+            $<$<COMPILE_LANGUAGE:C>:-Wundef>
+            $<$<COMPILE_LANGUAGE:C>:-Wcast-align>
+            $<$<COMPILE_LANGUAGE:C>:-Wwrite-strings>
+            $<$<COMPILE_LANGUAGE:C>:-Wunreachable-code>
+            $<$<COMPILE_LANGUAGE:C>:-Wformat=2>
         )
     endif()
 else()
     # When building as C, use standard C compilation (without converted C++ modules)
     set(ALL_SOURCES
+        ${BETREE_ALLOC_SOURCES}
         ${BETREE_C_SOURCES}
         ${BETREE_GENERATED_SOURCES}
         debug.c

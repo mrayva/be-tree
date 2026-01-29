@@ -17,7 +17,10 @@ if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 endif()
 
 # Build options
-option(BUILD_AS_CPP "Compile library sources as C++ (C++20/23)" ON)
+# NOTE: BUILD_AS_CPP currently enables linking C++ modules (like debug.cpp) with C code.
+# It does NOT compile all C sources as C++ due to C/C++ compatibility issues (e.g., 'namespace' keyword).
+# This allows gradual, incremental migration where individual modules are converted to C++ one at a time.
+option(BUILD_AS_CPP "Enable C++ support and link converted C++ modules" ON)
 
 # Set C and C++ standards
 set(CMAKE_C_STANDARD 11)

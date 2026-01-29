@@ -722,21 +722,22 @@ struct gathered_subs {
 static void add_sub_debug(const struct betree_sub* sub, struct gathered_subs* gatherer)
 {
     if(gatherer->count == 0) {
-        gatherer->subs = bcalloc(sizeof(*gatherer->subs));
-        if(gatherer->subs == NULL) {
+        gatherer->subs = static_cast<struct betree_sub**>(bcalloc(sizeof(*gatherer->subs)));
+        if(gatherer->subs == nullptr) {
             fprintf(stderr, "%s bcalloc failed", __func__);
             abort();
         }
     }
     else {
-        struct betree_sub** subs = brealloc(gatherer->subs, sizeof(*subs) * (gatherer->count + 1));
-        if(subs == NULL) {
+        struct betree_sub** subs = static_cast<struct betree_sub**>(
+            brealloc(gatherer->subs, sizeof(*subs) * (gatherer->count + 1)));
+        if(subs == nullptr) {
             fprintf(stderr, "%s brealloc failed", __func__);
             abort();
         }
         gatherer->subs = subs;
     }
-    gatherer->subs[gatherer->count] = (struct betree_sub*)sub;
+    gatherer->subs[gatherer->count] = const_cast<struct betree_sub*>(sub);
     gatherer->count++;
 }
 

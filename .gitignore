@@ -1,6 +1,7 @@
 *.o
 err.txt
 build/*
+build-*/
 src/parser.output
 src/event_parser.output
 .DS_Store

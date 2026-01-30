@@ -14,7 +14,6 @@ set(BETREE_C_SOURCES
     printer.c
     tree.c
     tree_err.c
-    value.c
 )
 
 # Allocation layer - must remain as C for compatibility
@@ -49,6 +48,7 @@ set(BETREE_CPP_SOURCES
     jsw_rbtree.cpp  # Red-black tree implementation
     ast_compare.cpp # AST node comparison functions
     config.cpp      # Configuration and attribute domain management
+    value.cpp       # Value structures and operations
     # Future converted C++ modules will be listed here
     # Example: debug.cpp (see examples/README.md for reference implementation)
 )

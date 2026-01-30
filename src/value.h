@@ -118,6 +118,11 @@ struct value_bound {
     };
 };
 
+// When compiling as C++, use the modern C++ header for function declarations
+#ifdef __cplusplus
+#include "value.hpp"
+#endif
+
 struct betree_integer_list* make_integer_list();
 struct betree_string_list* make_string_list();
 struct betree_segments* make_segments();

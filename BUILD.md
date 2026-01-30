@@ -1,166 +1,319 @@
-# Build Instructions
+# Building be-tree with CMake and vcpkg
 
-This document describes how to build the be-tree project using CMake and vcpkg.
+This document describes how to build the be-tree library using the modern CMake build system with optional vcpkg dependency management.
+
+## Table of Contents
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [Building with vcpkg](#building-with-vcpkg)
+- [Building without vcpkg](#building-without-vcpkg)
+- [Build Options](#build-options)
+- [Running Tests](#running-tests)
+- [Legacy Makefile](#legacy-makefile)
 
 ## Prerequisites
 
+### Required
 - CMake 3.20 or higher
-- A C++20-capable compiler (GCC 10+, Clang 10+, MSVC 2019+)
-- vcpkg (optional, but recommended for dependency management)
+- C compiler (GCC 7+, Clang 10+, or MSVC 2019+)
+- C++ compiler with C++20 support (GCC 10+, Clang 11+, or MSVC 2019+)
+- Flex (for lexer generation, if not already generated)
+- Bison (for parser generation, if not already generated)
 - GNU Scientific Library (GSL) for test executables
 
-## Building with CMake and vcpkg
+### Optional (via vcpkg)
+- fmt library (version 10.0.0+)
+- Microsoft GSL (version 4.0.0+)
+- Catch2 (version 3.0.0+) for future C++ unit tests
 
-### 1. Install vcpkg
+## Quick Start
 
-If you don't have vcpkg installed:
-
+### 1. Generate lex/yacc files (if not already generated)
 ```bash
-git clone https://github.com/Microsoft/vcpkg.git
-cd vcpkg
-./bootstrap-vcpkg.sh  # On Windows: .\bootstrap-vcpkg.bat
+# Use the existing Makefile to generate lexer/parser files
+make src/lexer.c src/parser.c src/event_lexer.c src/event_parser.c
 ```
 
-### 2. Set up environment
-
-Export the vcpkg toolchain file path:
-
-```bash
-export CMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
-```
-
-Or you can pass it directly to CMake (see below).
-
-### 3. Build the project
-
-#### Building as C++ (default)
-
+### 2. Build with CMake (C++ mode - default)
 ```bash
 # Create build directory
-mkdir build
-cd build
+mkdir build && cd build
 
-# Configure with vcpkg toolchain
-cmake .. -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
+# Configure with C++ compilation enabled (default)
+cmake ..
 
 # Build
 cmake --build .
 
-# Executables will be in build/bin/
-# Library will be in build/lib/
+# The library will be at: build/lib/libbetree.a
+# Test executables will be at: build/bin/testbenchmark and build/bin/testbenchmark_err
 ```
 
-#### Building as C (legacy mode)
-
-To build with C compilation (preserving original behavior):
-
+### 3. Build in C mode (legacy compatibility)
 ```bash
-mkdir build
-cd build
+mkdir build-c && cd build-c
 
-# Configure with BUILD_AS_CPP=OFF
+# Configure with C compilation
 cmake .. -DBUILD_AS_CPP=OFF
 
 # Build
 cmake --build .
 ```
 
-### 4. Running tests
+## Building with vcpkg
 
-After building:
+vcpkg is a cross-platform package manager that simplifies dependency management.
 
+The dependencies declared in `vcpkg.json` (fmt, ms-gsl, catch2) are currently not used by the C codebase. They are reserved for future C++ modules that will leverage modern C++ libraries. When converting modules to C++, these libraries will be available for use.
+
+### 1. Install vcpkg
 ```bash
-# Run testbenchmark directly
-./bin/testbenchmark
+# Clone vcpkg repository
+git clone https://github.com/Microsoft/vcpkg.git
+cd vcpkg
 
-# Or use the custom target
-cmake --build . --target run-tests
+# Bootstrap vcpkg
+./bootstrap-vcpkg.sh  # On Linux/macOS
+# or
+./bootstrap-vcpkg.bat  # On Windows
+
+# Set environment variable (optional, for convenience)
+export VCPKG_ROOT=/path/to/vcpkg
 ```
 
-## Building with the Original Makefile
-
-The original Makefile is preserved for compatibility:
-
+### 2. Build be-tree with vcpkg dependencies
 ```bash
-# Build library
-make
+cd /path/to/be-tree
 
-# Build and run tests
-make test
+# Generate lex/yacc files first
+make src/lexer.c src/parser.c src/event_lexer.c src/event_parser.c
 
-# Build testbenchmark executables
-make build-test-benchmark
+# Create build directory
+mkdir build-vcpkg && cd build-vcpkg
 
-# Clean
-make clean
+# Configure with vcpkg toolchain
+cmake .. -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
+
+# Build
+cmake --build .
 ```
 
-## CMake Build Options
+vcpkg will automatically install the dependencies listed in `vcpkg.json`:
+- fmt (formatted output library)
+- ms-gsl (Microsoft's Guidelines Support Library)
+- catch2 (testing framework, dev dependency)
 
-- `BUILD_AS_CPP` (default: ON) - Compile library sources as C++
-- `NIF` (default: OFF) - Build with Erlang NIF support
+## Building without vcpkg
 
-Example with custom options:
+If you don't want to use vcpkg, you can install dependencies system-wide or skip optional dependencies:
 
+### Ubuntu/Debian
 ```bash
-cmake .. -DBUILD_AS_CPP=ON -DNIF=OFF
-```
+sudo apt-get install libgsl-dev libfmt-dev
 
-## Dependencies
-
-When building as C++, the following dependencies are managed through vcpkg:
-
-- **fmt** - Modern formatting library
-- **ms-gsl** - Microsoft's Guidelines Support Library
-
-These are automatically installed by vcpkg when you configure the project.
-
-## Troubleshooting
-
-### Missing generated files (lexer.c, parser.c, etc.)
-
-If you get errors about missing `lexer.c`, `parser.c`, `event_lexer.c`, or `event_parser.c`, you need to generate them first using the Makefile:
-
-```bash
 # Generate lex/yacc files
-make
+make src/lexer.c src/parser.c src/event_lexer.c src/event_parser.c
 
-# Then you can use CMake
+# Build
 mkdir build && cd build
 cmake ..
 cmake --build .
 ```
 
-### GSL not found
-
-If GSL is not found, testbenchmark executables may fail to link. Install GSL:
-
+### macOS (with Homebrew)
 ```bash
-# Ubuntu/Debian
-sudo apt-get install libgsl-dev
+brew install gsl fmt
 
-# macOS
-brew install gsl
+# Generate lex/yacc files
+make src/lexer.c src/parser.c src/event_lexer.c src/event_parser.c
 
-# Fedora/RHEL
-sudo dnf install gsl-devel
+# Build
+mkdir build && cd build
+cmake ..
+cmake --build .
 ```
 
-### vcpkg dependencies not found
+## Build Options
 
-Make sure you're passing the correct toolchain file to CMake:
+### BUILD_AS_CPP (default: ON)
+Controls whether to compile library sources as C++ or C.
 
 ```bash
-cmake .. -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
+# Build as C++ (default)
+cmake .. -DBUILD_AS_CPP=ON
+
+# Build as C (legacy mode)
+cmake .. -DBUILD_AS_CPP=OFF
+```
+
+When `BUILD_AS_CPP=ON`:
+- C++ modules and compatibility shim are compiled as C++20
+- Existing C sources remain compiled as C11 to avoid keyword conflicts
+- Compatibility shim (`compat_alloc.cpp`) provides C++-friendly allocation wrappers
+- Converted modules can use modern C++ features
+- Generated lex/yacc files remain compiled as C for compatibility
+
+When `BUILD_AS_CPP=OFF`:
+- All sources are compiled as standard C11
+- No C++ dependencies are required
+
+### CMAKE_BUILD_TYPE
+Controls the optimization level and debug symbols.
+
+```bash
+# Debug build (default)
+cmake .. -DCMAKE_BUILD_TYPE=Debug
+
+# Release build with optimizations
+cmake .. -DCMAKE_BUILD_TYPE=Release
+
+# Release with debug info
+cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo
+```
+
+## Running Tests
+
+### Test Benchmark Executables
+After building, you can run the benchmark test executables:
+
+```bash
+# From build directory
+./bin/testbenchmark
+./bin/testbenchmark_err
+```
+
+Note: These executables require:
+- GSL library to be installed
+- Test data files in the `data/` directory
+
+### Legacy Test Suite
+You can still use the original Makefile test targets:
+
+```bash
+# From repository root
+make test
+make valgrind
+```
+
+## Legacy Makefile
+
+The original Makefile is still present and fully functional. You can continue to use it for:
+- Generating lex/yacc files
+- Building the library with traditional Make
+- Running the existing test suite
+
+```bash
+# Build with Makefile
+make
+
+# Run tests
+make test
+
+# Run valgrind checks
+make valgrind
+
+# Build test benchmarks
+make build-test-benchmark
+```
+
+## Troubleshooting
+
+### Lex/Yacc Generated Files Not Found
+If CMake complains about missing generated files:
+```bash
+# Generate them using the Makefile
+make src/lexer.c src/parser.c src/event_lexer.c src/event_parser.c
+```
+
+### GSL Not Found
+If GSL library is not found:
+- Ubuntu/Debian: `sudo apt-get install libgsl-dev`
+- macOS: `brew install gsl`
+- Or use vcpkg: Files will be auto-installed
+
+### vcpkg Dependencies Not Installing
+Make sure vcpkg is properly bootstrapped and the toolchain file path is correct:
+```bash
+# Bootstrap vcpkg
+cd /path/to/vcpkg
+./bootstrap-vcpkg.sh
+
+# Use absolute path to toolchain file
+cmake .. -DCMAKE_TOOLCHAIN_FILE=/absolute/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
+```
+
+## Example: Complete Build from Scratch
+
+```bash
+# 1. Clone repository
+git clone https://github.com/mrayva/be-tree.git
+cd be-tree
+
+# 2. Generate parser/lexer files
+make src/lexer.c src/parser.c src/event_lexer.c src/event_parser.c
+
+# 3. Install dependencies (Ubuntu example)
+sudo apt-get install cmake libgsl-dev flex bison
+
+# 4. Build with CMake in C++ mode
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build . -j$(nproc)
+
+# 5. Run tests (if test data is available)
+./bin/testbenchmark
 ```
 
 ## Migration Notes
 
-This CMake build system is part of an incremental migration to modern C++. Currently:
+This CMake build system is designed for incremental migration to modern C++:
 
-- The library can be built as either C or C++ (controlled by `BUILD_AS_CPP`)
-- A compatibility shim (`compat_alloc.cpp`) provides C-compatible allocation functions when building as C++
-- Generated files (lexer, parser) are always compiled as C to avoid issues
-- The `debug` module has been converted to C++ as an example of idiomatic conversion
+1. **Compatibility**: Both C and C++ compilation modes are supported
+2. **Gradual Conversion**: Individual modules can be converted to C++ incrementally
+3. **Legacy Support**: Original Makefile remains fully functional
+4. **Modern Dependencies**: vcpkg integration allows easy use of modern C++ libraries
 
-The original Makefile remains unchanged and fully functional for those who prefer the traditional build system.
+### Current Status
+
+- **Infrastructure Ready**: CMake build system, vcpkg manifest, and C++ compatibility shim are in place
+- **C++ Support**: C++20 standard enabled, compatibility allocation wrappers implemented
+- **Example Conversions**: Reference C++ conversions available in `examples/` directory
+- **Known Limitation**: Header files use C++ keywords (e.g., `namespace` in `value.h`), preventing module conversion until headers are refactored
+
+### Migration Strategy
+
+The recommended approach for converting modules to C++ is:
+
+1. **Header Compatibility** (Phase 1): Refactor headers to avoid C++ keywords
+   - Rename `namespace` → `ns` or `namespace_id`
+   - Add `extern "C"` guards where needed
+   - Ensure headers can be included from C++ code
+
+2. **Individual Modules** (Phase 2): Convert modules one at a time
+   - Start with utility modules (examples in `examples/` directory)
+   - Follow the pattern shown in `examples/debug.cpp`
+   - Update `src/CMakeLists.txt` to include converted modules
+
+3. **Testing**: Verify each converted module works correctly before moving to the next
+
+4. **RAII Patterns**: Use std::string, std::vector, std::unique_ptr for memory management
+
+5. **extern "C"**: Wrap public APIs with `extern "C"` for C linkage where needed
+
+### Example: debug.cpp
+
+The `examples/debug.cpp` file demonstrates modern C++ conversion patterns:
+- Use of std::string for string manipulation
+- static_cast/const_cast for type safety
+- nullptr instead of NULL
+- C++ STL containers where appropriate
+
+See `examples/README.md` for detailed conversion guidelines and checklist.
+
+Once header refactoring is complete, converted modules can be activated by moving them from `examples/` to `src/` and uncommenting them in `src/CMakeLists.txt`.
+
+## Further Information
+
+- CMake documentation: https://cmake.org/documentation/
+- vcpkg documentation: https://vcpkg.io/
+- Project repository: https://github.com/mrayva/be-tree

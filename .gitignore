@@ -1,6 +1,7 @@
 *.o
 err.txt
 build/*
+build-*/
 src/parser.output
 src/event_parser.output
 .DS_Store
@@ -31,14 +32,22 @@ perf.md
 olddata/*
 
 # CMake build artifacts
-CMakeFiles/
 CMakeCache.txt
+CMakeFiles/
 cmake_install.cmake
-Makefile.cmake
-*.cmake
-build-c/
-build-cpp/
-build/
+**/Makefile  # CMake-generated Makefiles (repository Makefile at root is tracked)
+CTestTestfile.cmake
+_deps/
+*Config.cmake
+*ConfigVersion.cmake
+cmake-build-*/
 
 # vcpkg
 vcpkg_installed/
+.vs/
+
+# Test executables
+testbenchmark
+testbenchmark_err
+
+_codeql*

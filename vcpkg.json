@@ -1,11 +1,21 @@
 {
   "name": "be-tree",
   "version": "0.1.0",
-  "description": "Boolean Expression Tree - fast evaluation of large numbers of boolean expressions",
+  "description": "Binary Expression Tree library with incremental C++20/23 port support",
   "dependencies": [
-    "fmt",
-    "ms-gsl"
+    {
+      "name": "fmt",
+      "version>=": "10.0.0"
+    },
+    {
+      "name": "ms-gsl",
+      "version>=": "4.0.0"
+    }
   ],
-  "builtin-baseline": "c8696863d371ab7f46545af3d3c3f3e8eb1c61a4",
-  "overrides": []
+  "dev-dependencies": [
+    {
+      "name": "catch2",
+      "version>=": "3.0.0"
+    }
+  ]
 }

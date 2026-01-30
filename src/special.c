@@ -11,7 +11,7 @@
 bool within_frequency_caps(const struct betree_frequency_caps* caps,
     enum frequency_type_e type,
     uint32_t id,
-    const struct string_value namespace,
+    const struct string_value ns,
     uint32_t value,
     size_t length,
     int64_t now)
@@ -19,7 +19,7 @@ bool within_frequency_caps(const struct betree_frequency_caps* caps,
     for(size_t i = 0; i < caps->size; i++) {
         const struct betree_frequency_cap* content = caps->content[i];
         if(content->id == id &&
-            content->namespace.str == namespace.str &&
+            content->ns.str == ns.str &&
             content->type == type) {
             if(length <= 0) {
                 return value > content->value;
@@ -42,7 +42,7 @@ bool within_frequency_caps(const struct betree_frequency_caps* caps,
 bool within_frequency_caps_counting(const struct betree_frequency_caps* caps,
     enum frequency_type_e type,
     uint32_t id,
-    const struct string_value namespace,
+    const struct string_value ns,
     uint32_t value,
     size_t length,
     int64_t now,
@@ -52,7 +52,7 @@ bool within_frequency_caps_counting(const struct betree_frequency_caps* caps,
         (*ops_count)++;
         const struct betree_frequency_cap* content = caps->content[i];
         if(content->id == id && 
-            content->namespace.str == namespace.str &&
+            content->ns.str == ns.str &&
             content->type == type) {
             if(length <= 0) {
                 return value > content->value;

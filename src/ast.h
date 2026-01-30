@@ -8,6 +8,10 @@
 #include "value.h"
 #include "var.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Comparison (<, <=, >, >=)
 // Work on integer and float
 
@@ -349,3 +353,8 @@ bool all_bounded_strings_valid(const struct config* config, const struct ast_nod
 bool all_exprs_valid(const struct config* config, const struct ast_node* node);
 
 size_t next_low(const int64_t arr[], size_t low, size_t count, int64_t x);
+
+#ifdef __cplusplus
+}
+#endif
+

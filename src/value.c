@@ -187,18 +187,18 @@ struct betree_segment* make_segment(int64_t id, int64_t timestamp)
 
 struct betree_frequency_cap* make_frequency_cap(const char* stype,
     uint32_t id,
-    struct string_value namespace,
+    struct string_value ns,
     bool timestamp_defined,
     int64_t timestamp,
     uint32_t value)
 {
     enum frequency_type_e type = get_type_from_string(stype);
-    return make_frequency_cap_with_type(type, id, namespace, timestamp_defined, timestamp, value);
+    return make_frequency_cap_with_type(type, id, ns, timestamp_defined, timestamp, value);
 }
 
 struct betree_frequency_cap* make_frequency_cap_with_type(enum frequency_type_e type,
     uint32_t id,
-    struct string_value namespace,
+    struct string_value ns,
     bool timestamp_defined,
     int64_t timestamp,
     uint32_t value)
@@ -206,7 +206,7 @@ struct betree_frequency_cap* make_frequency_cap_with_type(enum frequency_type_e 
     struct betree_frequency_cap* frequency_cap = bmalloc(sizeof(*frequency_cap));
     frequency_cap->type = type;
     frequency_cap->id = id;
-    frequency_cap->namespace = namespace;
+    frequency_cap->ns = ns;
     frequency_cap->timestamp_defined = timestamp_defined;
     frequency_cap->timestamp = timestamp;
     frequency_cap->value = value;
@@ -281,7 +281,7 @@ void free_segments(struct betree_segments* value)
 
 void free_frequency_cap(struct betree_frequency_cap* value)
 {
-    bfree((char*)value->namespace.string);
+    bfree((char*)value->ns.string);
     bfree(value);
 }
 
@@ -365,12 +365,12 @@ char* frequency_cap_to_string(struct betree_frequency_cap* cap)
     char* string = NULL;
     const char* type = frequency_type_to_string(cap->type);
     if(cap->timestamp_defined) {
-        if(basprintf(&string, "[[\"%s\", %u, \"%s\"], %u, %ld]", type, cap->id, cap->namespace.string, cap->value, cap->timestamp) < 0) {
+        if(basprintf(&string, "[[\"%s\", %u, \"%s\"], %u, %ld]", type, cap->id, cap->ns.string, cap->value, cap->timestamp) < 0) {
             abort();
         }
     }
     else {
-        if(basprintf(&string, "[[\"%s\", %u, \"%s\"], %u, undefined]", type, cap->id, cap->namespace.string, cap->value) < 0) {
+        if(basprintf(&string, "[[\"%s\", %u, \"%s\"], %u, undefined]", type, cap->id, cap->ns.string, cap->value) < 0) {
             abort();
         }
     }

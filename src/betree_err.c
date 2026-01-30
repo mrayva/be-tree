@@ -21,8 +21,14 @@
 #include "value.h"
 #include "dyn_arr.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int parse(const char* text, struct ast_node** node);
 int event_parse(const char* text, struct betree_event** event);
+#ifdef __cplusplus
+}
+#endif
 
 static bool is_valid(const struct config* config, const struct ast_node* node)
 {

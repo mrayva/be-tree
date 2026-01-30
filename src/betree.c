@@ -26,8 +26,14 @@
     /*return found;*/
 /*}*/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int parse(const char* text, struct ast_node** node);
 int event_parse(const char* text, struct betree_event** event);
+#ifdef __cplusplus
+}
+#endif
 
 static bool is_valid(const struct config* config, const struct ast_node* node)
 {
@@ -918,7 +924,7 @@ struct betree_frequency_caps* betree_make_frequency_caps(size_t count)
 
 struct betree_frequency_cap* betree_make_frequency_cap(const char* stype,
     uint32_t id,
-    const char* ns,
+    const char* ns_str,
     bool timestamp_defined,
     int64_t timestamp,
     uint32_t value)
@@ -927,9 +933,9 @@ struct betree_frequency_cap* betree_make_frequency_cap(const char* stype,
     if(type == FREQUENCY_TYPE_INVALID) {
         return NULL;
     }
-    struct string_value namespace
-        = { .string = bstrdup(ns), .str = INVALID_STR, .var = INVALID_VAR };
-    return make_frequency_cap_with_type(type, id, namespace, timestamp_defined, timestamp, value);
+    struct string_value ns
+        = { .string = bstrdup(ns_str), .var = INVALID_VAR, .str = INVALID_STR };
+    return make_frequency_cap_with_type(type, id, ns, timestamp_defined, timestamp, value);
 }
 
 void betree_add_frequency_cap(struct betree_frequency_caps* frequency_caps,

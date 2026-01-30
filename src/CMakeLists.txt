@@ -4,7 +4,6 @@
 # alloc.c is kept separate as it must remain as C
 set(BETREE_C_SOURCES
     ast.c
-    ast_compare.c
     ast_err.c
     betree.c
     betree_err.c
@@ -49,6 +48,7 @@ set(BETREE_CPP_SOURCES
     special.cpp     # Frequency caps, segments, geo, string utilities
     var.cpp         # Variable getter functions
     jsw_rbtree.cpp  # Red-black tree implementation
+    ast_compare.cpp # AST node comparison functions
     # Future converted C++ modules will be listed here
     # Example: debug.cpp (see examples/README.md for reference implementation)
 )

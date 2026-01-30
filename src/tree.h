@@ -9,6 +9,10 @@
 #include "memoize.h"
 #include "value.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct betree_variable {
     struct attr_var attr_var;
     struct value value;
@@ -183,3 +187,8 @@ bool insert_be_tree(const struct config* config, const struct betree_sub* sub, s
 void sort_event_lists(struct betree_event* event);
 
 void prepare_cnode_subs(struct cnode* cnode, struct subs_data* data);
+
+#ifdef __cplusplus
+}
+#endif
+

@@ -1,17 +1,15 @@
 #pragma once
 
-#ifdef __cplusplus
-// When compiling as C++, use the C++ version
-#include "utils.hpp"
-#else
-// Original C declarations
-
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <cstdarg>
+#include <cstdint>
+#include <cstdlib>
 
 #include "error.h"
+
+// Keep C linkage for these utility functions so they can be called from C code
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 int64_t d64min(int64_t a, int64_t b);
 int64_t d64max(int64_t a, int64_t b);
@@ -26,8 +24,10 @@ int icmpfunc(const void *a, const void *b);
 int scmpfunc(const void *a, const void *b);
 int iecmpfunc(const void *a, const void *b);
 
+#ifdef __cplusplus
+}
+#endif
+
+// C++ convenience macros
 #define likely(x)       __builtin_expect((x),1)
 #define unlikely(x)     __builtin_expect((x),0)
-
-#endif  // __cplusplus
-

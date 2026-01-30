@@ -22,7 +22,11 @@ char* bstrdup(const char *s1)
     char *str;
     size_t size = strlen(s1) + 1;
 
+#ifdef __cplusplus
+    str = static_cast<char*>(bmalloc(size));
+#else
     str = bmalloc(size);
+#endif
     if (str) {
         memcpy(str, s1, size);
     }
@@ -46,7 +50,11 @@ int bvasprintf(char **buf, const char *format, va_list va)
 
 	/* Account for null terminator. */
 	len += 1;
+#ifdef __cplusplus
+	*buf = static_cast<char*>(bmalloc(len));
+#else
 	*buf = bmalloc(len);
+#endif
 	if (*buf == NULL) {
 		return (-1);
     }

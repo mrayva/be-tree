@@ -228,9 +228,9 @@ struct ast_node* ast_special_geo_create(const enum ast_special_geo_e op,
 {
     struct ast_node* node = ast_special_expr_create();
     struct ast_special_geo geo = { .op = op,
+        .has_radius = has_radius,
         .latitude = latitude,
         .longitude = longitude,
-        .has_radius = has_radius,
         .radius = radius,
         .latitude_var = make_attr_var("latitude", NULL),
         .longitude_var = make_attr_var("longitude", NULL) };

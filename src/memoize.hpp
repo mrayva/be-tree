@@ -13,7 +13,7 @@ struct memoize {
 };
 
 // Modern C++ inline implementations with constexpr where possible
-namespace betree {
+namespace memoize_ops {
     // Set bit k in bitset A
     inline void set_bit(std::uint64_t A[], std::uint64_t k) noexcept {
         A[k / 64ULL] |= (1ULL << (k % 64ULL));
@@ -28,7 +28,7 @@ namespace betree {
     [[nodiscard]] inline bool test_bit(const std::uint64_t A[], std::uint64_t k) noexcept {
         return ((A[k / 64ULL] & (1ULL << (k % 64ULL))) != 0ULL);
     }
-} // namespace betree
+} // namespace memoize_ops
 
 // C API compatibility - extern "C" wrappers for existing C code
 #ifdef __cplusplus

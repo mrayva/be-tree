@@ -10,7 +10,6 @@ set(BETREE_C_SOURCES
     betree_err.c
     config.c
     debug_err.c
-    hashmap.c
     helper.c
     helper_err.c
     jsw_rbtree.c
@@ -49,6 +48,7 @@ set(BETREE_CPP_SOURCES
     memoize.cpp  # Bitset operations
     dyn_arr.cpp  # Dynamic array with ABI compatibility
     utils.cpp    # Utility functions using std::min/max/fabs
+    hashmap.cpp  # Predicate map using red-black tree
     # Future converted C++ modules will be listed here
     # Example: debug.cpp (see examples/README.md for reference implementation)
 )

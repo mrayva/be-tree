@@ -16,6 +16,10 @@
 
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct jsw_rbtree;
 
 typedef int (*cmp_f) (const void *p1, const void *p2);
@@ -26,4 +30,8 @@ void* jsw_rbfind(struct jsw_rbtree* tree, void* data);
 int jsw_rbinsert(struct jsw_rbtree* tree, void* data);
 int jsw_rberase(struct jsw_rbtree* tree, void* data);
 size_t jsw_rbsize(struct jsw_rbtree* tree);
+
+#ifdef __cplusplus
+}
+#endif
 

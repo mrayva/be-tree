@@ -1,8 +1,6 @@
 #pragma once
 
 #ifdef __cplusplus
-// When compiling as C++, use the compatibility shim for memory allocation
-#include "compat_alloc.hpp"
 // Still need the string allocation functions from alloc.c
 extern "C" {
 #endif
@@ -34,5 +32,6 @@ int basprintf(char **buf, const char *format, ...);
 // Include C++ compatibility shim when compiling as C++
 // This must come after the macro definitions above
 #ifdef __cplusplus
+}  // extern "C"
 #include "compat_alloc.hpp"
 #endif

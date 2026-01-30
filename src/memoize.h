@@ -1,5 +1,10 @@
 #pragma once
 
+// When compiling as C++, use the modern C++ header
+#ifdef __cplusplus
+#include "memoize.hpp"
+#else
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -14,4 +19,6 @@ struct memoize {
 void set_bit(uint64_t A[], uint64_t k);
 void clear_bit(uint64_t A[], uint64_t k);
 bool test_bit(const uint64_t A[], uint64_t k);
+
+#endif // __cplusplus
 

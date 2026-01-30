@@ -16,7 +16,6 @@ set(BETREE_C_SOURCES
     helper_err.c
     jsw_rbtree.c
     map.c
-    memoize.c
     printer.c
     special.c
     tree.c
@@ -49,6 +48,7 @@ set(BETREE_GENERATED_SOURCES
 # 2. Add the converted .cpp file here
 # 3. Remove the corresponding .c file from BETREE_C_SOURCES
 set(BETREE_CPP_SOURCES
+    memoize.cpp  # First converted module - bitset operations
     # Future converted C++ modules will be listed here
     # Example: debug.cpp (see examples/README.md for reference implementation)
 )

@@ -1,6 +1,7 @@
 {
   "name": "be-tree",
   "version": "0.1.0",
+  "builtin-baseline": "3895230f38e498525f2560a281223d12066fa74a",
   "description": "Binary Expression Tree library with incremental C++20/23 port support",
   "dependencies": [
     {
@@ -10,12 +11,13 @@
     {
       "name": "ms-gsl",
       "version>=": "4.0.0"
-    }
-  ],
-  "dev-dependencies": [
+    },
     {
       "name": "catch2",
-      "version>=": "3.0.0"
-    }
+      "version>=": "3.12.0"
+    },
+    {
+      "name": "gsl"
+    }    
   ]
 }

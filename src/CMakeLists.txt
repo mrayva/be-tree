@@ -18,7 +18,6 @@ set(BETREE_C_SOURCES
     tree.c
     tree_err.c
     value.c
-    var.c
 )
 
 # Allocation layer - must remain as C for compatibility
@@ -49,6 +48,7 @@ set(BETREE_CPP_SOURCES
     utils.cpp    # Utility functions using std::min/max/fabs
     hashmap.cpp  # Predicate map using red-black tree
     special.cpp  # Frequency caps, segments, geo, string utilities
+    var.cpp      # Variable getter functions
     # Future converted C++ modules will be listed here
     # Example: debug.cpp (see examples/README.md for reference implementation)
 )

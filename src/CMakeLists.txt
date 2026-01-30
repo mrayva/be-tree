@@ -19,7 +19,6 @@ set(BETREE_C_SOURCES
     special.c
     tree.c
     tree_err.c
-    utils.c
     value.c
     var.c
 )
@@ -48,7 +47,8 @@ set(BETREE_GENERATED_SOURCES
 # 3. Remove the corresponding .c file from BETREE_C_SOURCES
 set(BETREE_CPP_SOURCES
     memoize.cpp  # Bitset operations
-    dyn_arr.cpp  # Dynamic array using std::vector
+    dyn_arr.cpp  # Dynamic array with ABI compatibility
+    utils.cpp    # Utility functions using std::min/max/fabs
     # Future converted C++ modules will be listed here
     # Example: debug.cpp (see examples/README.md for reference implementation)
 )

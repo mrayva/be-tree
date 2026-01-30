@@ -7,7 +7,6 @@ set(BETREE_C_SOURCES
     ast_err.c
     betree.c
     betree_err.c
-    config.c
     debug_err.c
     helper.c
     helper_err.c
@@ -49,6 +48,7 @@ set(BETREE_CPP_SOURCES
     var.cpp         # Variable getter functions
     jsw_rbtree.cpp  # Red-black tree implementation
     ast_compare.cpp # AST node comparison functions
+    config.cpp      # Configuration and attribute domain management
     # Future converted C++ modules will be listed here
     # Example: debug.cpp (see examples/README.md for reference implementation)
 )

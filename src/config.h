@@ -4,9 +4,13 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include "config.h"
 #include "map.h"
 #include "var.h"
+
+// When compiling as C++, use the modern C++ header for function declarations
+#ifdef __cplusplus
+#include "config.hpp"
+#endif
 
 #ifdef __cplusplus
 extern "C" {

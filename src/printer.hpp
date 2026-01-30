@@ -1,13 +1,14 @@
 #pragma once
 
-#include <stdbool.h>
+struct ast_node;
+struct betree_variable;
+struct attr_domain;
+struct cdir;
+struct report;
+enum betree_value_type_e;
 
-#include "ast.h"
-#include "tree.h"
-
-// When compiling as C++, use the modern C++ header for function declarations
 #ifdef __cplusplus
-#include "printer.hpp"
+extern "C" {
 #endif
 
 char* ast_to_string(const struct ast_node* node);
@@ -17,3 +18,6 @@ void print_cdir(const struct cdir* cdir);
 void print_report(const struct report* report);
 void print_value_type(enum betree_value_type_e value_type);
 
+#ifdef __cplusplus
+}
+#endif

@@ -11,7 +11,6 @@ set(BETREE_C_SOURCES
     helper.c
     helper_err.c
     map.c
-    printer.c
     tree.c
     tree_err.c
 )
@@ -49,6 +48,7 @@ set(BETREE_CPP_SOURCES
     ast_compare.cpp # AST node comparison functions
     config.cpp      # Configuration and attribute domain management
     value.cpp       # Value structures and operations
+    printer.cpp     # AST and tree printing utilities
     # Future converted C++ modules will be listed here
     # Example: debug.cpp (see examples/README.md for reference implementation)
 )

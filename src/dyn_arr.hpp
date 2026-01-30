@@ -16,7 +16,7 @@ struct dynamic_array_t {
 
 #define INITIAL_CAPACITY 16
 
-namespace betree {
+namespace dyn_arr_ops {
 
 // C++ helper functions using modern practices
 inline dynamic_array_t* create_dynamic_array_impl(std::size_t initial_capacity) {
@@ -99,7 +99,7 @@ inline dynamic_array_t* dynamic_array_merge_impl(dynamic_array_t* arr1, dynamic_
     }
 }
 
-} // namespace betree
+} // namespace dyn_arr_ops
 
 // C API compatibility
 #ifdef __cplusplus

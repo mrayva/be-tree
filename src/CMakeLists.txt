@@ -10,7 +10,6 @@ set(BETREE_C_SOURCES
     betree_err.c
     config.c
     debug_err.c
-    dyn_arr.c
     hashmap.c
     helper.c
     helper_err.c
@@ -48,7 +47,8 @@ set(BETREE_GENERATED_SOURCES
 # 2. Add the converted .cpp file here
 # 3. Remove the corresponding .c file from BETREE_C_SOURCES
 set(BETREE_CPP_SOURCES
-    memoize.cpp  # First converted module - bitset operations
+    memoize.cpp  # Bitset operations
+    dyn_arr.cpp  # Dynamic array using std::vector
     # Future converted C++ modules will be listed here
     # Example: debug.cpp (see examples/README.md for reference implementation)
 )

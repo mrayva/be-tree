@@ -1,6 +1,11 @@
 #ifndef __DYNAMIC_ARRAY_H__
 #define __DYNAMIC_ARRAY_H__
 
+// When compiling as C++, use the modern C++ header
+#ifdef __cplusplus
+#include "dyn_arr.hpp"
+#else
+
 #include <stdio.h>
 #include <stdint.h>
 
@@ -19,4 +24,5 @@ void resize_dynamic_array(dynamic_array_t* arr, size_t new_capacity);
 void dynamic_array_add(dynamic_array_t* arr, uint64_t element);
 dynamic_array_t* dynamic_array_merge(dynamic_array_t* arr1, dynamic_array_t* arr2);
 
-#endif
+#endif // __cplusplus
+#endif // __DYNAMIC_ARRAY_H__

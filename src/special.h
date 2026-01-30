@@ -1,12 +1,15 @@
 #pragma once
 
+// When compiling as C++, use the modern C++ header
+#ifdef __cplusplus
+#include "special.hpp"
+#else
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 
 #include "tree.h"
-// Note: C++ keyword conflicts (e.g., 'ns') are handled via compiler flags for now
-// #include "compat_keywords.h"  // Commented out - causing issues, to be addressed in future work
 
 bool within_frequency_caps(const struct betree_frequency_caps* caps,
     enum frequency_type_e type,
@@ -36,3 +39,5 @@ bool geo_within_radius(double lat1, double lon1, double lat2, double lon2, doubl
 bool contains(const char* value, const char* pattern);
 bool starts_with(const char* value, const char* pattern);
 bool ends_with(const char* value, const char* pattern);
+
+#endif // __cplusplus

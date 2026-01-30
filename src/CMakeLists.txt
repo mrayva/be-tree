@@ -15,7 +15,6 @@ set(BETREE_C_SOURCES
     jsw_rbtree.c
     map.c
     printer.c
-    special.c
     tree.c
     tree_err.c
     value.c
@@ -49,6 +48,7 @@ set(BETREE_CPP_SOURCES
     dyn_arr.cpp  # Dynamic array with ABI compatibility
     utils.cpp    # Utility functions using std::min/max/fabs
     hashmap.cpp  # Predicate map using red-black tree
+    special.cpp  # Frequency caps, segments, geo, string utilities
     # Future converted C++ modules will be listed here
     # Example: debug.cpp (see examples/README.md for reference implementation)
 )

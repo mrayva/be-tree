@@ -56,17 +56,13 @@ if(GSL_FOUND)
     add_executable(testbenchmark tests/real_tests.c)
     target_link_libraries(testbenchmark PRIVATE betree GSL::gsl GSL::gslcblas m)
     target_include_directories(testbenchmark PRIVATE ${CMAKE_SOURCE_DIR}/src)
-    if(BUILD_AS_CPP)
-        set_source_files_properties(tests/real_tests.c PROPERTIES LANGUAGE CXX)
-    endif()
+    # Test files remain as C - they test the C API exposed via extern "C"
 
     # testbenchmark_err - real_tests_err.c
     add_executable(testbenchmark_err tests/real_tests_err.c)
     target_link_libraries(testbenchmark_err PRIVATE betree GSL::gsl GSL::gslcblas m)
     target_include_directories(testbenchmark_err PRIVATE ${CMAKE_SOURCE_DIR}/src)
-    if(BUILD_AS_CPP)
-        set_source_files_properties(tests/real_tests_err.c PROPERTIES LANGUAGE CXX)
-    endif()
+    # Test files remain as C - they test the C API exposed via extern "C"
 else()
     message(STATUS "GSL not found - testbenchmark executables will not be built")
     message(STATUS "Install GSL (libgsl-dev on Debian/Ubuntu) or use vcpkg to build tests")

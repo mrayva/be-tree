@@ -209,7 +209,7 @@ bool test_frequency_list_pred(
                 if(target->id != value->id || target->timestamp != value->timestamp
                     || target->timestamp_defined != value->timestamp_defined
                     || target->type != value->type || target->value != value->value
-                    || strcmp(target->namespace.string, value->namespace.string) != 0) {
+                    || strcmp(target->ns.string, value->ns.string) != 0) {
                     return false;
                 }
             }

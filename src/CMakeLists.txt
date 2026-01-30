@@ -12,7 +12,6 @@ set(BETREE_C_SOURCES
     debug_err.c
     helper.c
     helper_err.c
-    jsw_rbtree.c
     map.c
     printer.c
     tree.c
@@ -43,12 +42,13 @@ set(BETREE_GENERATED_SOURCES
 # 2. Add the converted .cpp file here
 # 3. Remove the corresponding .c file from BETREE_C_SOURCES
 set(BETREE_CPP_SOURCES
-    memoize.cpp  # Bitset operations
-    dyn_arr.cpp  # Dynamic array with ABI compatibility
-    utils.cpp    # Utility functions using std::min/max/fabs
-    hashmap.cpp  # Predicate map using red-black tree
-    special.cpp  # Frequency caps, segments, geo, string utilities
-    var.cpp      # Variable getter functions
+    memoize.cpp     # Bitset operations
+    dyn_arr.cpp     # Dynamic array with ABI compatibility
+    utils.cpp       # Utility functions using std::min/max/fabs
+    hashmap.cpp     # Predicate map using red-black tree
+    special.cpp     # Frequency caps, segments, geo, string utilities
+    var.cpp         # Variable getter functions
+    jsw_rbtree.cpp  # Red-black tree implementation
     # Future converted C++ modules will be listed here
     # Example: debug.cpp (see examples/README.md for reference implementation)
 )

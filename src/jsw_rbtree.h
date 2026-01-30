@@ -14,11 +14,12 @@
  */
 #pragma once
 
-#include <stddef.h>
-
+// When compiling as C++, use the modern C++ header
 #ifdef __cplusplus
-extern "C" {
-#endif
+#include "jsw_rbtree.hpp"
+#else
+
+#include <stddef.h>
 
 struct jsw_rbtree;
 
@@ -31,7 +32,5 @@ int jsw_rbinsert(struct jsw_rbtree* tree, void* data);
 int jsw_rberase(struct jsw_rbtree* tree, void* data);
 size_t jsw_rbsize(struct jsw_rbtree* tree);
 
-#ifdef __cplusplus
-}
-#endif
+#endif // __cplusplus
 

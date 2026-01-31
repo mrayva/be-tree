@@ -9,6 +9,11 @@
 #include "value.h"
 #include "var.h"
 
+// When compiling as C++, use the modern C++ header for function declarations
+#ifdef __cplusplus
+#include "ast_err.hpp"
+#endif
+
 bool match_node_err(const struct betree_variable** preds,
     const struct ast_node* node,
     struct memoize* memoize,

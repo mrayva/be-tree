@@ -4,7 +4,6 @@
 # alloc.c is kept separate as it must remain as C
 set(BETREE_C_SOURCES
     ast.c
-    ast_err.c
     betree.c
     betree_err.c
     helper.c
@@ -49,6 +48,7 @@ set(BETREE_CPP_SOURCES
     value.cpp       # Value structures and operations
     printer.cpp     # AST and tree printing utilities
     debug_err.cpp   # DOT file generation for error trees
+    ast_err.cpp     # AST node matching and evaluation
     # Future converted C++ modules will be listed here
     # Example: debug.cpp (see examples/README.md for reference implementation)
 )

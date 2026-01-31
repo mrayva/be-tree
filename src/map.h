@@ -59,9 +59,10 @@ typedef struct {
     map_next_(&(m)->base, iter)
 
 
+// When compiling as C++, use the modern C++ header for function declarations
 #ifdef __cplusplus
-extern "C" {
-#endif
+#include "map.hpp"
+#else
 
 void map_deinit_(map_base_t *m);
 void *map_get_(map_base_t *m, const char *key);
@@ -70,8 +71,6 @@ void map_remove_(map_base_t *m, const char *key);
 map_iter_t map_iter_(void);
 const char *map_next_(map_base_t *m, map_iter_t *iter);
 
-#ifdef __cplusplus
-}
 #endif
 
 

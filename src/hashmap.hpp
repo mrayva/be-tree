@@ -4,10 +4,9 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include "ast.h"
 #include "jsw_rbtree.h"
 #include "memoize.h"
-
-struct ast_node;
 
 // Maintain C struct layout for ABI compatibility
 // C code in tree.c and tree_err.c directly accesses pred_map->pred_count fields

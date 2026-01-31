@@ -2,15 +2,8 @@
 
 # List of core C source files (excluding generated ones and allocation layer)
 # alloc.c is kept separate as it must remain as C
+# ALL CORE C SOURCES HAVE BEEN CONVERTED TO C++20!
 set(BETREE_C_SOURCES
-    ast.c
-    betree.c
-    betree_err.c
-    helper.c
-    helper_err.c
-    map.c
-    tree.c
-    tree_err.c
 )
 
 # Allocation layer - must remain as C for compatibility
@@ -50,7 +43,14 @@ set(BETREE_CPP_SOURCES
     debug_err.cpp   # DOT file generation for error trees
     ast_err.cpp     # AST node matching and evaluation
     debug.cpp       # DOT file generation and tree printing
-    # Future converted C++ modules will be listed here
+    betree_err.cpp  # BE-tree error structure management (905 LOC)
+    map.cpp         # Hash map implementation (207 LOC)
+    betree.cpp      # Main BE-tree API implementation (1077 LOC)
+    tree_err.cpp    # Error tree operations and subscriptions (1595 LOC)
+    tree.cpp        # Tree operations and subscriptions (2346 LOC)
+    ast.cpp         # AST node creation and matching (3396 LOC)
+    helper.cpp      # Helper functions for variable parsing and tree operations (106 LOC)
+    helper_err.cpp  # Helper functions for error tree variable parsing (106 LOC)
 )
 
 # Compatibility shim for C++ compilation

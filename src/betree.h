@@ -74,6 +74,15 @@ struct betree_segments;
 struct betree_frequency_cap;
 struct betree_frequency_caps;
 
+struct betree_variable_definition {
+    const char* name;
+    enum betree_value_type_e type;
+};
+
+#ifdef __cplusplus
+#include "betree.hpp"
+#else
+
 struct betree_integer_list* betree_make_integer_list(size_t count);
 void betree_add_integer(struct betree_integer_list* list, size_t index, int64_t value);
 
@@ -87,11 +96,6 @@ void betree_add_segment(struct betree_segments* segments, size_t index, struct b
 struct betree_frequency_caps* betree_make_frequency_caps(size_t count);
 struct betree_frequency_cap* betree_make_frequency_cap(const char* stype, uint32_t id, const char* ns, bool timestamp_defined, int64_t timestamp, uint32_t value);
 void betree_add_frequency_cap(struct betree_frequency_caps* frequency_caps, size_t index, struct betree_frequency_cap* frequency_cap);
-
-struct betree_variable_definition {
-    const char* name;
-    enum betree_value_type_e type;
-};
 
 const struct betree_variable** make_environment(size_t attr_domain_count, const struct betree_event* event);
 
@@ -195,3 +199,5 @@ void betree_free_frequency_cap(struct betree_frequency_cap* value);
 void betree_free_frequency_caps(struct betree_frequency_caps* value);
 
 void betree_prepare_sub_data(struct betree* tree);
+
+#endif  // __cplusplus

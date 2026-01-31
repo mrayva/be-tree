@@ -1,12 +1,7 @@
 #pragma once
 
-#ifdef __cplusplus
-#include "tree_err.hpp"
-#else
-
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <cstddef>
+#include <cstdint>
 
 #include "betree.h"
 #include "betree_err.h"
@@ -19,10 +14,10 @@ struct cnode_err;
 struct lnode_err {
     struct cnode_err* parent;
     struct {
-        size_t sub_count;
+        std::size_t sub_count;
         struct betree_sub** subs;
     };
-    size_t max;
+    std::size_t max;
 };
 
 struct pdir_err;
@@ -59,14 +54,12 @@ struct cdir_err {
 struct pdir_err {
     struct cnode_err* parent;
     struct {
-        size_t pnode_count;
+        std::size_t pnode_count;
         struct pnode_err** pnodes;
     };
 };
 
-#ifdef __cplusplus
 extern "C" {
-#endif
 
 void match_be_tree_err(const struct config* config,
     const struct betree_variable** preds,
@@ -78,16 +71,14 @@ void match_be_tree_node_counting_err(const struct config* config,
     const struct cnode_err* cnode,
     struct subs_to_eval* subs,
     int* node_count);
-bool match_sub_err(size_t attr_domains_count,
+bool match_sub_err(std::size_t attr_domains_count,
     const struct betree_variable** preds,
     const struct betree_sub* sub,
     struct report_err* report,
     struct memoize* memoize,
-    const uint64_t* undefined,
+    const std::uint64_t* undefined,
     betree_var_t* last_reason,
     betree_var_t* memoize_reason);
-
-void add_sub_err(betree_sub_t id, struct report_err* report);
 
 bool sub_is_enclosed_err(const struct attr_domain** attr_domains,
     const struct betree_sub* sub,
@@ -112,8 +103,8 @@ bool betree_search_with_preds_ids_err(const struct config* config,
     const struct betree_variable** preds,
     const struct cnode_err* cnode,
     struct report_err* report,
-    const uint64_t* ids,
-    size_t sz);
+    const std::uint64_t* ids,
+    std::size_t sz);
 
 bool insert_be_tree_err(const struct config* config,
     const struct betree_sub* sub,
@@ -126,10 +117,6 @@ void build_sub_ids_cnode(struct cnode_err* cn);
 void set_reason_sub_id_lists(
     struct report_err* report, betree_var_t reason, dynamic_array_t* sub_ids);
 void set_reason_sub_id_lists_from_ids(
-    struct report_err* report, betree_var_t reason, const uint64_t* ids, size_t sz);
+    struct report_err* report, betree_var_t reason, const std::uint64_t* ids, std::size_t sz);
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif // __cplusplus
+} // extern "C"

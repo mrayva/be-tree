@@ -1,6 +1,8 @@
 #pragma once
 
+#ifndef __cplusplus
 #include <stdbool.h>
+#endif
 
 #include "betree.h"
 #include "config.h"
@@ -357,4 +359,3 @@ size_t next_low(const int64_t arr[], size_t low, size_t count, int64_t x);
 #ifdef __cplusplus
 }
 #endif
-

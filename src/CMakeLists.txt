@@ -49,8 +49,8 @@ set(BETREE_CPP_SOURCES
     printer.cpp     # AST and tree printing utilities
     debug_err.cpp   # DOT file generation for error trees
     ast_err.cpp     # AST node matching and evaluation
+    debug.cpp       # DOT file generation and tree printing
     # Future converted C++ modules will be listed here
-    # Example: debug.cpp (see examples/README.md for reference implementation)
 )
 
 # Compatibility shim for C++ compilation
@@ -78,7 +78,6 @@ if(BUILD_AS_CPP)
         ${BETREE_CPP_SOURCES}
         ${BETREE_COMPAT_SOURCES}
         ${BETREE_GENERATED_SOURCES}
-        debug.c  # Using C version for now
     )
     
     add_library(betree STATIC ${ALL_SOURCES})

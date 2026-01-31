@@ -21,13 +21,8 @@ set(BETREE_GENERATED_SOURCES
 )
 
 # C++ source files (converted modules)
-# NOTE: Example conversions are in examples/ directory for reference.
-# Modules cannot be converted until headers are refactored to avoid C++ keywords
-# (e.g., 'namespace' field in value.h must be renamed before C++ conversion is possible).
-# When ready to convert a module:
-# 1. Complete header refactoring
-# 2. Add the converted .cpp file here
-# 3. Remove the corresponding .c file from BETREE_C_SOURCES
+# All core modules have been successfully converted to C++20!
+# See examples/ directory for usage demonstrations.
 set(BETREE_CPP_SOURCES
     memoize.cpp     # Bitset operations
     dyn_arr.cpp     # Dynamic array with ABI compatibility

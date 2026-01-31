@@ -23,6 +23,7 @@ endif()
 # This allows gradual, incremental migration where individual modules are converted
 # to C++ one at a time without breaking existing C code.
 option(BUILD_AS_CPP "Enable C++ support and link converted C++ modules" ON)
+option(BUILD_EXAMPLES "Build usage examples" OFF)
 
 # Set C and C++ standards
 set(CMAKE_C_STANDARD 11)
@@ -46,6 +47,9 @@ find_package(Microsoft.GSL CONFIG QUIET)
 
 # Source directory
 add_subdirectory(src)
+
+# Examples directory (optional)
+add_subdirectory(examples)
 
 # Test executables (mimicking Makefile's testbenchmark targets)
 # These require GSL library
@@ -78,6 +82,7 @@ add_custom_target(build-all
 message(STATUS "")
 message(STATUS "be-tree configuration:")
 message(STATUS "  BUILD_AS_CPP: ${BUILD_AS_CPP}")
+message(STATUS "  BUILD_EXAMPLES: ${BUILD_EXAMPLES}")
 message(STATUS "  C++ Standard: C++${CMAKE_CXX_STANDARD}")
 message(STATUS "  C Standard: C${CMAKE_C_STANDARD}")
 if(fmt_FOUND)

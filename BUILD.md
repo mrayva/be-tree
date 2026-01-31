@@ -275,42 +275,49 @@ This CMake build system is designed for incremental migration to modern C++:
 
 ### Current Status
 
-- **Infrastructure Ready**: CMake build system, vcpkg manifest, and C++ compatibility shim are in place
-- **C++ Support**: C++20 standard enabled, compatibility allocation wrappers implemented
-- **Example Conversions**: Reference C++ conversions available in `examples/` directory
-- **Known Limitation**: Header files use C++ keywords (e.g., `namespace` in `value.h`), preventing module conversion until headers are refactored
+✅ **Migration Complete**: All 22 core C modules have been successfully converted to C++20!
 
-### Migration Strategy
+- **Infrastructure**: CMake build system, vcpkg manifest, C++ compatibility shim
+- **C++20 Features**: nullptr, std::fprintf, std::abort, auto, static_cast, smart pointers
+- **ABI Compatibility**: All public APIs maintain C linkage via extern "C" wrappers
+- **Remaining C Code**: Only allocation layer (alloc.c) and generated parser files remain as C
 
-The recommended approach for converting modules to C++ is:
+### Converted Modules
 
-1. **Header Compatibility** (Phase 1): Refactor headers to avoid C++ keywords
-   - Rename `namespace` → `ns` or `namespace_id`
-   - Add `extern "C"` guards where needed
-   - Ensure headers can be included from C++ code
+All core modules are now C++20:
+- Utilities: memoize, dyn_arr, utils, hashmap, special, var, jsw_rbtree
+- AST: ast, ast_compare, ast_err
+- Configuration: config, value
+- Trees: tree, tree_err, betree, betree_err
+- Helpers: helper, helper_err, printer, debug, debug_err
+- Map: map
 
-2. **Individual Modules** (Phase 2): Convert modules one at a time
-   - Start with utility modules (examples in `examples/` directory)
-   - Follow the pattern shown in `examples/debug.cpp`
-   - Update `src/CMakeLists.txt` to include converted modules
+### Usage Examples
 
-3. **Testing**: Verify each converted module works correctly before moving to the next
+The `examples/` directory contains practical demonstrations:
 
-4. **RAII Patterns**: Use std::string, std::vector, std::unique_ptr for memory management
+1. **basic_usage.c** - C API usage showing:
+   - Creating a BE-tree
+   - Defining variable domains
+   - Inserting subscriptions
+   - Matching events
+   - Performance statistics
 
-5. **extern "C"**: Wrap public APIs with `extern "C"` for C linkage where needed
+2. **cpp_usage.cpp** - Modern C++ usage with:
+   - RAII wrapper classes
+   - Smart pointers for automatic memory management
+   - Method chaining
+   - STL containers for results
 
-### Example: debug.cpp
+Build examples:
+```bash
+cmake .. -DBUILD_EXAMPLES=ON
+make examples
+./examples/basic_usage
+./examples/cpp_usage
+```
 
-The `examples/debug.cpp` file demonstrates modern C++ conversion patterns:
-- Use of std::string for string manipulation
-- static_cast/const_cast for type safety
-- nullptr instead of NULL
-- C++ STL containers where appropriate
-
-See `examples/README.md` for detailed conversion guidelines and checklist.
-
-Once header refactoring is complete, converted modules can be activated by moving them from `examples/` to `src/` and uncommenting them in `src/CMakeLists.txt`.
+See `examples/README.md` for detailed API documentation and usage patterns.
 
 ## Further Information
 

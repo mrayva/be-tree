@@ -1,12 +1,14 @@
 #pragma once
 
-struct cnode_err;
 struct betree_err;
 
-// When compiling as C++, use the modern C++ header for function declarations
 #ifdef __cplusplus
-#include "debug_err.hpp"
+extern "C" {
 #endif
 
 void write_dot_file_err(const struct betree_err* tree);
 void write_dot_to_file_err(const struct betree_err* tree, const char* fname);
+
+#ifdef __cplusplus
+}
+#endif

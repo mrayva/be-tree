@@ -7,7 +7,6 @@ set(BETREE_C_SOURCES
     ast_err.c
     betree.c
     betree_err.c
-    debug_err.c
     helper.c
     helper_err.c
     map.c
@@ -49,6 +48,7 @@ set(BETREE_CPP_SOURCES
     config.cpp      # Configuration and attribute domain management
     value.cpp       # Value structures and operations
     printer.cpp     # AST and tree printing utilities
+    debug_err.cpp   # DOT file generation for error trees
     # Future converted C++ modules will be listed here
     # Example: debug.cpp (see examples/README.md for reference implementation)
 )

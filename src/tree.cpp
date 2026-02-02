@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cassert>
+#include <optional>
 
 #include "alloc.h"
 #include "ast.h"
@@ -1418,47 +1419,62 @@ static void free_pnode(struct pnode* pnode)
     bfree(pnode);
 }
 
-static struct betree_sub* find_sub_id_cdir(betree_sub_t id, struct cdir* cdir)
-{
-    if(cdir == nullptr) {
-        return nullptr;
-    }
-    struct betree_sub* in_cnode = find_sub_id(id, cdir->cnode);
-    if(in_cnode != nullptr) {
-        return in_cnode;
-    }
-    struct betree_sub* in_lcdir = find_sub_id_cdir(id, cdir->lchild);
-    if(in_lcdir != nullptr) {
-        return in_lcdir;
-    }
-    struct betree_sub* in_rcdir = find_sub_id_cdir(id, cdir->rchild);
-    if(in_rcdir != nullptr) {
-        return in_rcdir;
-    }
-    return nullptr;
-}
+// Forward declarations for mutual recursion
+static std::optional<betree_sub*> find_sub_id_cdir_opt(betree_sub_t id, struct cdir* cdir);
 
-extern "C" {
-
-struct betree_sub* find_sub_id(betree_sub_t id, struct cnode* cnode)
+// Internal implementation using std::optional for type safety
+static std::optional<betree_sub*> find_sub_id_opt(betree_sub_t id, struct cnode* cnode)
 {
     if(cnode == nullptr) {
-        return nullptr;
+        return std::nullopt;
     }
+
+    // Check subscriptions in leaf node
     for(std::size_t i = 0; i < cnode->lnode->sub_count; i++) {
         if(cnode->lnode->subs[i]->id == id) {
             return cnode->lnode->subs[i];
         }
     }
+
+    // Check partition directory
     if(cnode->pdir != nullptr) {
         for(std::size_t i = 0; i < cnode->pdir->pnode_count; i++) {
-            struct betree_sub* in_cdir = find_sub_id_cdir(id, cnode->pdir->pnodes[i]->cdir);
-            if(in_cdir != nullptr) {
+            if(auto in_cdir = find_sub_id_cdir_opt(id, cnode->pdir->pnodes[i]->cdir); in_cdir) {
                 return in_cdir;
             }
         }
     }
-    return nullptr;
+
+    return std::nullopt;
+}
+
+static std::optional<betree_sub*> find_sub_id_cdir_opt(betree_sub_t id, struct cdir* cdir)
+{
+    if(cdir == nullptr) {
+        return std::nullopt;
+    }
+
+    if(auto in_cnode = find_sub_id_opt(id, cdir->cnode); in_cnode) {
+        return in_cnode;
+    }
+
+    if(auto in_lcdir = find_sub_id_cdir_opt(id, cdir->lchild); in_lcdir) {
+        return in_lcdir;
+    }
+
+    if(auto in_rcdir = find_sub_id_cdir_opt(id, cdir->rchild); in_rcdir) {
+        return in_rcdir;
+    }
+
+    return std::nullopt;
+}
+
+// C-compatible wrappers
+extern "C" {
+
+struct betree_sub* find_sub_id(betree_sub_t id, struct cnode* cnode)
+{
+    return find_sub_id_opt(id, cnode).value_or(nullptr);
 }
 
 struct betree_variable* make_pred(const char* attr, betree_var_t variable_id, struct value value)

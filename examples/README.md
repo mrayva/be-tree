@@ -24,9 +24,9 @@ gcc -o basic_usage basic_usage.c -I../src -L../build/lib -lbetree -lm
 LD_LIBRARY_PATH=../build/lib ./basic_usage
 ```
 
-### 2. `cpp_usage.cpp` - Modern C++ Example
+### 2. `cpp_usage.cpp` - Modern C++ Example (Inline Wrapper)
 
-A modern C++20 example featuring:
+A modern C++20 example featuring an inline wrapper class:
 - RAII wrapper class around the C API
 - Smart pointers for automatic memory management
 - Method chaining for fluent API
@@ -44,6 +44,27 @@ g++ -std=c++20 -o cpp_usage cpp_usage.cpp -I../src -L../build/lib -lbetree -lm
 LD_LIBRARY_PATH=../build/lib ./cpp_usage
 ```
 
+### 3. `cpp_modern.cpp` - Production C++ API Example
+
+Demonstrates the production-quality `betree_cpp.hpp` wrapper API:
+- Uses the official `be::Tree` class from `include/betree_cpp.hpp`
+- Full RAII-based resource management
+- Exception-safe with custom `be::BetreeException`
+- Method chaining for all schema operations
+- `std::string_view` for zero-copy string parameters
+- `be::SearchResult` with STL containers
+- Comprehensive API coverage
+
+**Compile:**
+```bash
+g++ -std=c++20 -o cpp_modern cpp_modern.cpp -I../src -I../include -L../build/lib -lbetree -lm
+```
+
+**Run:**
+```bash
+LD_LIBRARY_PATH=../build/lib ./cpp_modern
+```
+
 ## Building with CMake
 
 The examples can be built using CMake:
@@ -56,8 +77,9 @@ make examples
 
 Then run:
 ```bash
-./examples/basic_usage
-./examples/cpp_usage
+./examples/basic_usage    # C API
+./examples/cpp_usage      # C++ inline wrapper
+./examples/cpp_modern     # C++ production API
 ```
 
 ## What These Examples Demonstrate
@@ -129,15 +151,35 @@ bool betree_search(const struct betree* tree, const char* event_json,
                    struct report* report);
 ```
 
-### C++ Wrapper (shown in cpp_usage.cpp)
+### C++ API (betree_cpp.hpp)
 
-The example includes a simple C++ wrapper demonstrating:
-- RAII for automatic resource management
-- Method chaining for fluent API
-- Modern C++ containers for results
-- Exception safety
+The library now includes a production-quality C++ wrapper in `include/betree_cpp.hpp`:
 
-This wrapper can be extended or used as a starting point for your own C++ interface.
+```cpp
+#include <betree_cpp.hpp>
+
+be::Tree tree;
+tree.add_integer("age", false, 0, 150)
+    .add_string("country", false, 100)
+    .insert(1, "age >= 18 and country = \"USA\"");
+
+auto results = tree.search(R"({"age": 25, "country": "USA"})");
+for (auto sub_id : results.matched_subs) {
+    std::cout << "Matched: " << sub_id << "\n";
+}
+// Automatic cleanup via RAII
+```
+
+Features:
+- **Namespace:** All types in `be::` namespace
+- **RAII:** Automatic resource management with `be::Tree`
+- **Exceptions:** `be::BetreeException` for error handling
+- **Results:** `be::SearchResult` with `std::vector<uint64_t>`
+- **Zero-copy:** Uses `std::string_view` for parameters
+- **Method chaining:** Fluent API for schema definition
+- **Type safety:** Strong typing with C++20
+
+The wrapper is header-only and works alongside the C API.
 
 ## Performance Notes
 

@@ -95,3 +95,9 @@ if(GSL_FOUND)
     message(STATUS "  GSL library: Found")
 endif()
 message(STATUS "")
+
+# Installation rules
+install(FILES include/betree_cpp.hpp
+    DESTINATION include
+    COMPONENT development
+)

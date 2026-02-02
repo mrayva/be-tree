@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string_view>
 
 #include "alloc.h"
 #include "config.h"
@@ -126,12 +127,12 @@ static void add_to_integer_map(struct integer_map* integer_map, std::int64_t int
     integer_map->integer_value_count++;
 }
 
-static void add_to_string_map(struct string_map* string_map, const char* string)
+static void add_to_string_map(struct string_map* string_map, std::string_view string)
 {
     if (string_map->string_value_count == 0) {
         map_init(&string_map->m);
     }
-    map_set(&string_map->m, string, string_map->string_value_count);
+    map_set(&string_map->m, string.data(), string_map->string_value_count);
     string_map->string_value_count++;
 }
 

@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstring>
 #include <numbers>
+#include <string_view>
 
 #include "betree.h"
 #include "error.h"
@@ -169,32 +170,50 @@ bool geo_within_radius(double lat1, double lon1, double lat2, double lon2, doubl
     return (std::asin(std::sqrt(dx * dx + dy * dy + dz * dz) / 2.0) * 2.0 * EARTH_RADIUS) <= distance;
 }
 
+// Internal implementation using std::string_view for zero-copy operations
+namespace {
+
+bool contains_impl(std::string_view value, std::string_view pattern)
+{
+    return value.find(pattern) != std::string_view::npos;
+}
+
+bool starts_with_impl(std::string_view value, std::string_view pattern)
+{
+    if (value.size() < pattern.size()) {
+        return false;
+    }
+    return value.substr(0, pattern.size()) == pattern;
+}
+
+bool ends_with_impl(std::string_view value, std::string_view pattern)
+{
+    if (value.size() < pattern.size()) {
+        return false;
+    }
+    return value.substr(value.size() - pattern.size()) == pattern;
+}
+
+} // anonymous namespace
+
+// C API wrappers
+extern "C" {
+
 bool contains(const char* value, const char* pattern)
 {
-    return std::strstr(value, pattern) != nullptr;
+    return contains_impl(value, pattern);
 }
 
 bool starts_with(const char* value, const char* pattern)
 {
-    const std::size_t value_size = std::strlen(value);
-    const std::size_t pattern_size = std::strlen(pattern);
-    if (value_size < pattern_size) {
-        return false;
-    }
-
-    return std::strncmp(value, pattern, pattern_size) == 0;
+    return starts_with_impl(value, pattern);
 }
 
 bool ends_with(const char* value, const char* pattern)
 {
-    const std::size_t value_size = std::strlen(value);
-    const std::size_t pattern_size = std::strlen(pattern);
-    if (value_size < pattern_size) {
-        return false;
-    }
+    return ends_with_impl(value, pattern);
+}
 
-    const std::size_t off = value_size - pattern_size;
-    return std::strncmp(value + off, pattern, pattern_size) == 0;
 }
 
 } // extern "C"

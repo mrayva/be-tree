@@ -1,5 +1,6 @@
 #include <cctype>
 #include <cmath>
+#include <string_view>
 
 #include <cstdint>
 #include <cstdio>
@@ -3263,10 +3264,10 @@ bool all_variables_in_config(const struct config* config, const struct ast_node*
     }
 }
 
-static std::size_t get_attr_string_bound(const struct config* config, const char* attr)
+static std::size_t get_attr_string_bound(const struct config* config, std::string_view attr)
 {
     for(std::size_t i = 0; i < config->attr_domain_count; i++) {
-        if(strcmp(attr, config->attr_domains[i]->attr_var.attr) == 0) {
+        if(attr == config->attr_domains[i]->attr_var.attr) {
             std::size_t count = config->attr_domains[i]->bound.smax;
             if(count == SIZE_MAX) {
                 return count;
@@ -3277,24 +3278,24 @@ static std::size_t get_attr_string_bound(const struct config* config, const char
     return SIZE_MAX;
 }
 
-static struct string_map* get_string_map_for_attr(const struct config* config, const char* attr)
+static struct string_map* get_string_map_for_attr(const struct config* config, std::string_view attr)
 {
     for(std::size_t i = 0; i < config->string_map_count; i++) {
         struct string_map* string_map = &config->string_maps[i];
-        if(strcmp(attr, string_map->attr_var.attr) == 0) {
+        if(attr == string_map->attr_var.attr) {
             return string_map;
         }
     }
     return nullptr;
 }
 
-static bool str_valid(const struct config* config, const char* attr, const char* string)
+static bool str_valid(const struct config* config, std::string_view attr, std::string_view string)
 {
     std::size_t bound = get_attr_string_bound(config, attr);
     struct string_map* string_map = get_string_map_for_attr(config, attr);
     std::size_t space_left = string_map == nullptr ? bound : bound - string_map->string_value_count;
     if(string_map != nullptr) {
-        auto str = static_cast<betree_str_t*>(map_get_(&string_map->m.base, string));
+        auto str = static_cast<betree_str_t*>(map_get_(&string_map->m.base, string.data()));
         if(str != nullptr) {
             return true;
         }
@@ -3303,8 +3304,8 @@ static bool str_valid(const struct config* config, const char* attr, const char*
     if(within_bound == false) {
         std::fprintf(stderr,
             "For attr '%s', string '%s' could not fit within the bound %zu\n",
-            attr,
-            string,
+            attr.data(),
+            string.data(),
             bound);
     }
     return within_bound;

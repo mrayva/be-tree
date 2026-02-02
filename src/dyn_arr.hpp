@@ -1,100 +1,120 @@
 #pragma once
 
 #include <cstdint>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <new>
+#include <vector>
+#include <memory>
 
 // Maintain C struct layout for ABI compatibility
-// C code directly accesses arr->size field
+// IMPORTANT: C code directly accesses arr->size and arr->data fields
+// We maintain these fields in sync with the internal std::vector
 struct dynamic_array_t {
-    std::size_t size;
-    std::size_t capacity;
-    std::uint64_t* data;
+    std::size_t size;       // Kept in sync with vector.size()
+    std::size_t capacity;   // Kept in sync with vector.capacity()
+    std::uint64_t* data;    // Kept in sync with vector.data()
+
+    // Internal storage using std::vector for RAII and safety
+    // This is opaque to C code - only C++ implementation uses it
+    void* _internal_vector;  // Actually std::vector<uint64_t>*
 };
 
 #define INITIAL_CAPACITY 16
 
 namespace dyn_arr_ops {
 
-// C++ helper functions using modern practices
+// Helper to get the internal vector
+inline std::vector<std::uint64_t>* get_vector(dynamic_array_t* arr) {
+    return static_cast<std::vector<std::uint64_t>*>(arr->_internal_vector);
+}
+
+inline const std::vector<std::uint64_t>* get_vector(const dynamic_array_t* arr) {
+    return static_cast<const std::vector<std::uint64_t>*>(arr->_internal_vector);
+}
+
+// Sync the C-visible fields with the vector state
+inline void sync_fields(dynamic_array_t* arr) {
+    if (arr && arr->_internal_vector) {
+        auto* vec = get_vector(arr);
+        arr->size = vec->size();
+        arr->capacity = vec->capacity();
+        arr->data = vec->data();
+    }
+}
+
+// Modern C++ implementation using std::vector
 inline dynamic_array_t* create_dynamic_array_impl(std::size_t initial_capacity) {
     try {
-        auto* arr = new dynamic_array_t;
-        arr->data = new std::uint64_t[initial_capacity];
-        arr->size = 0;
-        arr->capacity = initial_capacity;
+        auto* arr = new dynamic_array_t{};
+        arr->_internal_vector = new std::vector<std::uint64_t>();
+        auto* vec = get_vector(arr);
+        vec->reserve(initial_capacity);
+        sync_fields(arr);
         return arr;
     } catch (const std::bad_alloc&) {
-        std::perror("Failed to allocate memory for dynamic array");
         return nullptr;
     }
 }
 
 inline void clear_dynamic_array_impl(dynamic_array_t* arr) noexcept {
-    if (arr) {
-        arr->size = 0;
+    if (arr && arr->_internal_vector) {
+        get_vector(arr)->clear();
+        sync_fields(arr);
     }
 }
 
 inline void destroy_dynamic_array_impl(dynamic_array_t* arr) noexcept {
     if (arr) {
-        delete[] arr->data;
+        if (arr->_internal_vector) {
+            delete get_vector(arr);
+        }
         delete arr;
     }
 }
 
 inline void resize_dynamic_array_impl(dynamic_array_t* arr, std::size_t new_capacity) {
-    if (!arr) return;
+    if (!arr || !arr->_internal_vector) return;
 
     try {
-        auto* new_data = new std::uint64_t[new_capacity];
-        std::size_t copy_size = (arr->size < new_capacity) ? arr->size : new_capacity;
-        if (arr->data && copy_size > 0) {
-            std::memcpy(new_data, arr->data, copy_size * sizeof(std::uint64_t));
+        auto* vec = get_vector(arr);
+        vec->reserve(new_capacity);
+        if (vec->size() > new_capacity) {
+            vec->resize(new_capacity);
         }
-        delete[] arr->data;
-        arr->data = new_data;
-        arr->capacity = new_capacity;
-        if (arr->size > new_capacity) {
-            arr->size = new_capacity;
-        }
+        sync_fields(arr);
     } catch (const std::bad_alloc&) {
-        std::perror("Failed to reallocate memory for array data");
         std::abort();
     }
 }
 
 inline void dynamic_array_add_impl(dynamic_array_t* arr, std::uint64_t element) {
-    if (!arr) return;
+    if (!arr || !arr->_internal_vector) return;
 
-    if (arr->size >= arr->capacity) {
-        std::size_t new_capacity = (arr->capacity == 0) ? 1 : (arr->capacity << 1);
-        resize_dynamic_array_impl(arr, new_capacity);
+    try {
+        get_vector(arr)->push_back(element);
+        sync_fields(arr);
+    } catch (const std::bad_alloc&) {
+        std::abort();
     }
-
-    arr->data[arr->size++] = element;
 }
 
 inline dynamic_array_t* dynamic_array_merge_impl(dynamic_array_t* arr1, dynamic_array_t* arr2) {
-    if (!arr1 || !arr2) return nullptr;
+    if (!arr1 || !arr2 || !arr1->_internal_vector || !arr2->_internal_vector) {
+        return nullptr;
+    }
 
     try {
-        auto* merged_arr = create_dynamic_array_impl(arr1->size + arr2->size);
+        auto* vec1 = get_vector(arr1);
+        auto* vec2 = get_vector(arr2);
+
+        auto* merged_arr = create_dynamic_array_impl(vec1->size() + vec2->size());
         if (!merged_arr) return nullptr;
 
-        if (arr1->size > 0) {
-            std::memcpy(merged_arr->data, arr1->data, arr1->size * sizeof(std::uint64_t));
-        }
-        if (arr2->size > 0) {
-            std::memcpy(merged_arr->data + arr1->size, arr2->data, arr2->size * sizeof(std::uint64_t));
-        }
+        auto* merged_vec = get_vector(merged_arr);
+        merged_vec->insert(merged_vec->end(), vec1->begin(), vec1->end());
+        merged_vec->insert(merged_vec->end(), vec2->begin(), vec2->end());
 
-        merged_arr->size = arr1->size + arr2->size;
+        sync_fields(merged_arr);
         return merged_arr;
     } catch (const std::bad_alloc&) {
-        std::perror("Failed to merge arrays");
         return nullptr;
     }
 }

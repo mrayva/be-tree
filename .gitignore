@@ -13,6 +13,7 @@ output.be
 betree.dot
 betree.png
 betree.svg
+tests/*.dot
 compile_commands.json
 
 betree_defs

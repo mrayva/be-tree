@@ -18,6 +18,9 @@
 #include "printer.h"
 #include "tree.h"
 #include "tree_err.h"
+#include "tree_eval_shared.hpp"
+#include "tree_match_shared.hpp"
+#include "tree_traversal_shared.hpp"
 #include "utils.h"
 
 extern "C" {
@@ -25,32 +28,6 @@ extern "C" {
 }
 
 static betree_var_t find_pnode_attr_name(struct cdir_err* cdir);
-
-static bool is_id_in(std::uint64_t id, const std::uint64_t* ids, std::size_t sz)
-{
-    if(sz == 0) {
-        return false;
-    }
-    std::size_t first = 0;
-    std::size_t last = sz - 1;
-    if(id < ids[first] || id > ids[last]) {
-        return false;
-    }
-    std::size_t middle = (first + last) / 2;
-    while(first <= last) {
-        if(id == ids[middle]) {
-            return true;
-        }
-        if(ids[middle] < id) {
-            first = middle + 1;
-        }
-        else {
-            last = middle - 1;
-        }
-        middle = (first + last) / 2;
-    }
-    return false;
-}
 
 static void add_reason_sub_id_list(
     struct report_err* report, betree_var_t reason, betree_sub_t sub_id)
@@ -68,44 +45,6 @@ static void search_cdir_ids_err(const struct config* config,
     std::size_t sz,
     struct report_err* report);
 
-static void add_sub_to_eval(struct betree_sub* sub, struct subs_to_eval* subs)
-{
-    if(subs->capacity == subs->count) {
-        subs->capacity *= 2;
-        subs->subs = static_cast<struct betree_sub**>(brealloc(subs->subs, sizeof(*subs->subs) * subs->capacity));
-    }
-
-    subs->subs[subs->count] = sub;
-    subs->count++;
-}
-
-enum short_circuit_e { SHORT_CIRCUIT_PASS, SHORT_CIRCUIT_FAIL, SHORT_CIRCUIT_NONE };
-
-static enum short_circuit_e try_short_circuit_err(std::size_t attr_domains_count,
-    const struct short_circuit* short_circuit,
-    const std::uint64_t* undefined,
-    betree_var_t* last_reason)
-{
-    std::size_t count = attr_domains_count / 64 + 1;
-    for(std::size_t i = 0; i < count; i++) {
-        bool pass = short_circuit->pass[i] & undefined[i];
-        if(pass) {
-            return SHORT_CIRCUIT_PASS;
-        }
-        bool fail = short_circuit->fail[i] & undefined[i];
-        if(fail) {
-            for(std::size_t j = 0; j < attr_domains_count; j++) {
-                if((1 << (j % 64ULL) & short_circuit->fail[i])
-                    && (1 << (j % 64ULL) & undefined[i])) {
-                    *last_reason = j;
-                    break;
-                }
-            }
-            return SHORT_CIRCUIT_FAIL;
-        }
-    }
-    return SHORT_CIRCUIT_NONE;
-}
 
 static void check_sub_err(const struct lnode_err* lnode, struct subs_to_eval* subs)
 {
@@ -166,11 +105,6 @@ static void search_cdir_node_counting_err(const struct config* config,
     bool open_right,
     int* node_count);
 
-static bool event_contains_variable(const struct betree_variable** preds, betree_var_t variable_id)
-{
-    return preds[variable_id] != nullptr;
-}
-
 static void match_be_tree_ids_err(const struct config* config,
     const struct betree_variable** preds,
     const struct cnode_err* cnode,
@@ -181,80 +115,24 @@ static void match_be_tree_ids_err(const struct config* config,
 {
     const struct attr_domain** attr_domains = (const struct attr_domain**)config->attr_domains;
     check_sub_ids_err(cnode->lnode, subs, ids, sz);
-    if(cnode->pdir != nullptr) {
-        for(std::size_t i = 0; i < cnode->pdir->pnode_count; i++) {
-            struct pnode_err* pnode = cnode->pdir->pnodes[i];
-            const struct attr_domain* attr_domain
-                = get_attr_domain(attr_domains, pnode->attr_var.var);
-            if(attr_domain->allow_undefined
-                || event_contains_variable(preds, pnode->attr_var.var)) {
-                search_cdir_ids_err(config, preds, pnode->cdir, subs, true, true, ids, sz, report);
-            }
-        }
-    }
+    traverse_pdir_shared(attr_domains, preds, cnode->pdir, [&](struct pnode_err* pnode) {
+        search_cdir_ids_err(config, preds, pnode->cdir, subs, true, true, ids, sz, report);
+    });
 }
 
-static bool is_event_enclosed_err(const struct betree_variable** preds,
-    const struct cdir_err* cdir,
-    bool open_left,
-    bool open_right)
+static void add_excluded_child_reasons(
+    const struct config* config, struct report_err* report, struct cdir_err* branch, betree_var_t attr_var)
 {
-    if(cdir == nullptr) {
-        return false;
+    if(branch == nullptr || branch->sub_ids->size <= 0) {
+        return;
     }
-    const struct betree_variable* pred = preds[cdir->attr_var.var];
-    if(pred == nullptr) {
-        return true;
+    if(attr_var == INVALID_VAR) {
+        const betree_var_t no_reason
+            = ADDITIONAL_REASON(config->attr_domain_count, REASON_UNKNOWN);
+        betree_reason_map_join(report->reason_sub_id_list, no_reason, branch->sub_ids);
+        return;
     }
-    // No open_left for smin because it's always 0
-    switch(pred->value.value_type) {
-        case BETREE_BOOLEAN:
-            return (cdir->bound.bmin <= pred->value.boolean_value)
-                && (cdir->bound.bmax >= pred->value.boolean_value);
-        case BETREE_INTEGER:
-            return (open_left || cdir->bound.imin <= pred->value.integer_value)
-                && (open_right || cdir->bound.imax >= pred->value.integer_value);
-        case BETREE_FLOAT:
-            return (open_left || cdir->bound.fmin <= pred->value.float_value)
-                && (open_right || cdir->bound.fmax >= pred->value.float_value);
-        case BETREE_STRING:
-            return (cdir->bound.smin <= pred->value.string_value.str)
-                && (open_right || cdir->bound.smax >= pred->value.string_value.str);
-        case BETREE_INTEGER_ENUM:
-            return (cdir->bound.smin <= pred->value.integer_enum_value.ienum)
-                && (open_right || cdir->bound.smax >= pred->value.integer_enum_value.ienum);
-        case BETREE_INTEGER_LIST:
-            if(pred->value.integer_list_value->count != 0) {
-                std::int64_t min = pred->value.integer_list_value->integers[0];
-                std::int64_t max = pred->value.integer_list_value
-                                  ->integers[pred->value.integer_list_value->count - 1];
-                std::int64_t bound_min = open_left ? INT64_MIN : cdir->bound.imin;
-                std::int64_t bound_max = open_right ? INT64_MAX : cdir->bound.imax;
-                return min <= bound_max && bound_min <= max;
-            }
-            else {
-                return true;
-            }
-        case BETREE_STRING_LIST:
-            if(pred->value.string_list_value->count != 0) {
-                std::size_t min = pred->value.string_list_value->strings[0].str;
-                std::size_t max = pred->value.string_list_value
-                                 ->strings[pred->value.string_list_value->count - 1]
-                                 .str;
-                std::size_t bound_min = cdir->bound.smin;
-                std::size_t bound_max = open_right ? SIZE_MAX : cdir->bound.smax;
-                return min <= bound_max && bound_min <= max;
-            }
-            else {
-                return true;
-            }
-        case BETREE_SEGMENTS:
-        case BETREE_FREQUENCY_CAPS:
-            return true;
-        default:
-            std::abort();
-    }
-    return false;
+    betree_reason_map_join(report->reason_sub_id_list, attr_var, branch->sub_ids);
 }
 
 static void search_cdir_err(const struct config* config,
@@ -266,38 +144,17 @@ static void search_cdir_err(const struct config* config,
     struct report_err* report)
 {
     match_be_tree_err(config, preds, cdir->cnode, subs, report);
-    if(is_event_enclosed_err(preds, cdir->lchild, open_left, false)) {
-        search_cdir_err(config, preds, cdir->lchild, subs, open_left, false, report);
-    }
-    else {
-        if(cdir->lchild && cdir->lchild->sub_ids->size > 0) {
-            betree_var_t attr_var = find_pnode_attr_name(cdir);
-            if(attr_var == INVALID_VAR) {
-                betree_var_t no_reason
-                    = ADDITIONAL_REASON(config->attr_domain_count, REASON_UNKNOWN);
-                betree_reason_map_join(
-                    report->reason_sub_id_list, no_reason, cdir->lchild->sub_ids);
-            }
-            else
-                betree_reason_map_join(report->reason_sub_id_list, attr_var, cdir->lchild->sub_ids);
-        }
-    }
-    if(is_event_enclosed_err(preds, cdir->rchild, false, open_right)) {
-        search_cdir_err(config, preds, cdir->rchild, subs, false, open_right, report);
-    }
-    else {
-        if(cdir->rchild && cdir->rchild->sub_ids->size > 0) {
-            betree_var_t attr_var = find_pnode_attr_name(cdir);
-            if(attr_var == INVALID_VAR) {
-                betree_var_t no_reason
-                    = ADDITIONAL_REASON(config->attr_domain_count, REASON_UNKNOWN);
-                betree_reason_map_join(
-                    report->reason_sub_id_list, no_reason, cdir->rchild->sub_ids);
-            }
-            else
-                betree_reason_map_join(report->reason_sub_id_list, attr_var, cdir->rchild->sub_ids);
-        }
-    }
+    const betree_var_t attr_var = find_pnode_attr_name(cdir);
+    traverse_cdir_children_shared(
+        preds,
+        cdir,
+        open_left,
+        open_right,
+        [&](struct cdir_err* child, bool child_open_left, bool child_open_right) {
+            search_cdir_err(
+                config, preds, child, subs, child_open_left, child_open_right, report);
+        },
+        [&](struct cdir_err* child) { add_excluded_child_reasons(config, report, child, attr_var); });
 }
 
 static void search_cdir_ids_err(const struct config* config,
@@ -311,38 +168,17 @@ static void search_cdir_ids_err(const struct config* config,
     struct report_err* report)
 {
     match_be_tree_ids_err(config, preds, cdir->cnode, subs, ids, sz, report);
-    if(is_event_enclosed_err(preds, cdir->lchild, open_left, false)) {
-        search_cdir_ids_err(config, preds, cdir->lchild, subs, open_left, false, ids, sz, report);
-    }
-    else {
-        if(cdir->lchild && cdir->lchild->sub_ids->size > 0) {
-            betree_var_t attr_var = find_pnode_attr_name(cdir);
-            if(attr_var == INVALID_VAR) {
-                betree_var_t no_reason
-                    = ADDITIONAL_REASON(config->attr_domain_count, REASON_UNKNOWN);
-                betree_reason_map_join(
-                    report->reason_sub_id_list, no_reason, cdir->lchild->sub_ids);
-            }
-            else
-                betree_reason_map_join(report->reason_sub_id_list, attr_var, cdir->lchild->sub_ids);
-        }
-    }
-    if(is_event_enclosed_err(preds, cdir->rchild, false, open_right)) {
-        search_cdir_ids_err(config, preds, cdir->rchild, subs, false, open_right, ids, sz, report);
-    }
-    else {
-        if(cdir->rchild && cdir->rchild->sub_ids->size > 0) {
-            betree_var_t attr_var = find_pnode_attr_name(cdir);
-            if(attr_var == INVALID_VAR) {
-                betree_var_t no_reason
-                    = ADDITIONAL_REASON(config->attr_domain_count, REASON_UNKNOWN);
-                betree_reason_map_join(
-                    report->reason_sub_id_list, no_reason, cdir->rchild->sub_ids);
-            }
-            else
-                betree_reason_map_join(report->reason_sub_id_list, attr_var, cdir->rchild->sub_ids);
-        }
-    }
+    const betree_var_t attr_var = find_pnode_attr_name(cdir);
+    traverse_cdir_children_shared(
+        preds,
+        cdir,
+        open_left,
+        open_right,
+        [&](struct cdir_err* child, bool child_open_left, bool child_open_right) {
+            search_cdir_ids_err(
+                config, preds, child, subs, child_open_left, child_open_right, ids, sz, report);
+        },
+        [&](struct cdir_err* child) { add_excluded_child_reasons(config, report, child, attr_var); });
 }
 
 static void search_cdir_node_counting_err(const struct config* config,
@@ -354,14 +190,16 @@ static void search_cdir_node_counting_err(const struct config* config,
     int* node_count)
 {
     match_be_tree_node_counting_err(config, preds, cdir->cnode, subs, node_count);
-    if(is_event_enclosed_err(preds, cdir->lchild, open_left, false)) {
-        search_cdir_node_counting_err(
-            config, preds, cdir->lchild, subs, open_left, false, node_count);
-    }
-    if(is_event_enclosed_err(preds, cdir->rchild, false, open_right)) {
-        search_cdir_node_counting_err(
-            config, preds, cdir->rchild, subs, false, open_right, node_count);
-    }
+    traverse_cdir_children_shared(
+        preds,
+        cdir,
+        open_left,
+        open_right,
+        [&](struct cdir_err* child, bool child_open_left, bool child_open_right) {
+            search_cdir_node_counting_err(
+                config, preds, child, subs, child_open_left, child_open_right, node_count);
+        },
+        [](struct cdir_err*) {});
 }
 
 static bool is_used_cnode_err(betree_var_t variable_id, const struct cnode_err* cnode);
@@ -952,8 +790,10 @@ struct value_bounds {
 
 static struct value_bounds split_value_bound(struct value_bound bound)
 {
-    struct value_bound lbound = { .value_type = bound.value_type };
-    struct value_bound rbound = { .value_type = bound.value_type };
+    struct value_bound lbound = {};
+    struct value_bound rbound = {};
+    lbound.value_type = bound.value_type;
+    rbound.value_type = bound.value_type;
     switch(bound.value_type) {
         case(BETREE_INTEGER):
         case(BETREE_INTEGER_LIST): {
@@ -1169,23 +1009,7 @@ static betree_var_t find_pnode_attr_name(struct cdir_err* cdir)
 
 static void add_sub_err(betree_sub_t id, struct report_err* report)
 {
-    if(report->matched == 0) {
-        report->subs = static_cast<betree_sub_t*>(bcalloc(sizeof(betree_sub_t)));
-        if(report->subs == nullptr) {
-            std::fprintf(stderr, "%s bcalloc failed", __func__);
-            std::abort();
-        }
-    }
-    else {
-        auto* subs = static_cast<betree_sub_t*>(brealloc(report->subs, sizeof(betree_sub_t) * (report->matched + 1)));
-        if(subs == nullptr) {
-            std::fprintf(stderr, "%s brealloc failed", __func__);
-            std::abort();
-        }
-        report->subs = subs;
-    }
-    report->subs[report->matched] = id;
-    report->matched++;
+    append_report_sub_id(id, report);
 }
 
 extern "C" {
@@ -1242,17 +1066,9 @@ void match_be_tree_err(const struct config* config,
 {
     const struct attr_domain** attr_domains = (const struct attr_domain**)config->attr_domains;
     check_sub_err(cnode->lnode, subs);
-    if(cnode->pdir != nullptr) {
-        for(std::size_t i = 0; i < cnode->pdir->pnode_count; i++) {
-            struct pnode_err* pnode = cnode->pdir->pnodes[i];
-            const struct attr_domain* attr_domain
-                = get_attr_domain(attr_domains, pnode->attr_var.var);
-            if(attr_domain->allow_undefined
-                || event_contains_variable(preds, pnode->attr_var.var)) {
-                search_cdir_err(config, preds, pnode->cdir, subs, true, true, report);
-            }
-        }
-    }
+    traverse_pdir_shared(attr_domains, preds, cnode->pdir, [&](struct pnode_err* pnode) {
+        search_cdir_err(config, preds, pnode->cdir, subs, true, true, report);
+    });
 }
 
 void match_be_tree_node_counting_err(const struct config* config,
@@ -1263,18 +1079,11 @@ void match_be_tree_node_counting_err(const struct config* config,
 {
     const struct attr_domain** attr_domains = (const struct attr_domain**)config->attr_domains;
     check_sub_node_counting_err(cnode->lnode, subs, node_count);
+    traverse_pdir_shared(attr_domains, preds, cnode->pdir, [&](struct pnode_err* pnode) {
+        search_cdir_node_counting_err(config, preds, pnode->cdir, subs, true, true, node_count);
+        ++*node_count;
+    });
     if(cnode->pdir != nullptr) {
-        for(std::size_t i = 0; i < cnode->pdir->pnode_count; i++) {
-            struct pnode_err* pnode = cnode->pdir->pnodes[i];
-            const struct attr_domain* attr_domain
-                = get_attr_domain(attr_domains, pnode->attr_var.var);
-            if(attr_domain->allow_undefined
-                || event_contains_variable(preds, pnode->attr_var.var)) {
-                search_cdir_node_counting_err(
-                    config, preds, pnode->cdir, subs, true, true, node_count);
-            }
-            ++*node_count;
-        }
         ++*node_count;
     }
 }
@@ -1451,25 +1260,23 @@ bool betree_search_with_preds_err(const struct config* config,
     struct subs_to_eval subs;
     init_subs_to_eval(&subs);
     match_be_tree_err(config, preds, cnode, &subs, report);
-    for(std::size_t i = 0; i < subs.count; i++) {
-        const struct betree_sub* sub = subs.subs[i];
-        report->evaluated++;
-        betree_var_t last_reason;
-        if(match_sub_err(config->attr_domain_count,
-               preds,
-               sub,
-               report,
-               &memoize,
-               undefined,
-               &last_reason,
-               memoize_reason)
-            == true) {
-            add_sub_err(sub->id, report);
-        }
-        else {
-            add_reason_sub_id_list(report, last_reason, sub->id);
-        }
-    }
+    betree_var_t last_reason = INVALID_VAR;
+    evaluate_subs_shared(
+        subs,
+        report,
+        [&](const struct betree_sub* sub) {
+            last_reason = INVALID_VAR;
+            return match_sub_err(config->attr_domain_count,
+                preds,
+                sub,
+                report,
+                &memoize,
+                undefined,
+                &last_reason,
+                memoize_reason);
+        },
+        [&](const struct betree_sub* sub, bool) { add_sub_err(sub->id, report); },
+        [&](const struct betree_sub* sub, bool) { add_reason_sub_id_list(report, last_reason, sub->id); });
     bfree(subs.subs);
     bfree(memoize_reason);
     free_memoize(memoize);
@@ -1492,25 +1299,23 @@ bool betree_search_with_preds_ids_err(const struct config* config,
     struct subs_to_eval subs;
     init_subs_to_eval(&subs);
     match_be_tree_ids_err((const struct config*)config, preds, cnode, &subs, ids, sz, report);
-    for(std::size_t i = 0; i < subs.count; i++) {
-        const struct betree_sub* sub = subs.subs[i];
-        report->evaluated++;
-        betree_var_t last_reason;
-        if(match_sub_err(config->attr_domain_count,
-               preds,
-               sub,
-               report,
-               &memoize,
-               undefined,
-               &last_reason,
-               memoize_reason)
-            == true) {
-            add_sub_err(sub->id, report);
-        }
-        else {
-            add_reason_sub_id_list(report, last_reason, sub->id);
-        }
-    }
+    betree_var_t last_reason = INVALID_VAR;
+    evaluate_subs_shared(
+        subs,
+        report,
+        [&](const struct betree_sub* sub) {
+            last_reason = INVALID_VAR;
+            return match_sub_err(config->attr_domain_count,
+                preds,
+                sub,
+                report,
+                &memoize,
+                undefined,
+                &last_reason,
+                memoize_reason);
+        },
+        [&](const struct betree_sub* sub, bool) { add_sub_err(sub->id, report); },
+        [&](const struct betree_sub* sub, bool) { add_reason_sub_id_list(report, last_reason, sub->id); });
     bfree(subs.subs);
     bfree(memoize_reason);
     free_memoize(memoize);

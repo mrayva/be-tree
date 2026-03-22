@@ -343,6 +343,35 @@ int test_special()
     return 0;
 }
 
+int test_insert_rejections()
+{
+    struct betree* tree = betree_make();
+
+    add_attr_domain_bounded_i(tree->config, "age", false, 0, 10);
+    add_attr_domain_s(tree->config, "country", false);
+    add_attr_domain_i(tree->config, "now", false);
+    add_attr_domain_frequency(tree->config, "frequency_caps", false);
+
+    mu_assert(!betree_insert(tree, 1, "missing = 1"), "");
+    mu_assert(!betree_insert(tree, 2, "country = 1"), "");
+    mu_assert(!betree_insert(tree, 3, "age = 11"), "");
+
+    enum e { constant_count = 2 };
+    const struct betree_constant* constants[constant_count] = {
+        betree_make_integer_constant("advertiser_id", 20),
+        betree_make_integer_constant("campaign_id", 30),
+    };
+
+    mu_assert(
+        !betree_insert_with_constants(
+            tree, 4, constant_count, constants, "within_frequency_cap(\"flight\", \"ns\", 100, 0)"),
+        "");
+
+    betree_free_constants(constant_count, (struct betree_constant**)constants);
+    betree_free(tree);
+    return 0;
+}
+
 int all_tests()
 {
     test_missing_domain();
@@ -353,8 +382,8 @@ int all_tests()
     test_list();
     test_null();
     test_special();
+    test_insert_rejections();
     return 0;
 }
 
 RUN_TESTS()
-

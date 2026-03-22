@@ -28,7 +28,7 @@ if(BUILD_EXAMPLES)
     # Set output directory for examples
     set_target_properties(basic_usage cpp_usage cpp_modern
         PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/cmake/examples"
     )
 
     # Installation (optional)
@@ -36,5 +36,5 @@ if(BUILD_EXAMPLES)
     #     RUNTIME DESTINATION examples
     # )
 
-    message(STATUS "Examples will be built in ${CMAKE_BINARY_DIR}/examples/")
+    message(STATUS "Examples will be built in ${CMAKE_BINARY_DIR}/cmake/examples/")
 endif()

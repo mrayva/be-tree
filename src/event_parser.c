@@ -1324,7 +1324,13 @@ yyreduce:
 
   case 12: /* value: empty_list_value  */
 #line 110 "src/event_parser.y"
-                                                            { (yyval.value).value_type = BETREE_INTEGER_LIST; (yyval.value).integer_list_value = (yyvsp[0].integer_list_value); }
+                                                            {
+                                                                (yyval.value).value_type = BETREE_INTEGER_LIST;
+                                                                (yyval.value).integer_list_value = (yyvsp[0].integer_list_value);
+                                                                (yyval.value).string_list_value = (struct betree_string_list*)(yyvsp[0].integer_list_value);
+                                                                (yyval.value).segments_value = (struct betree_segments*)(yyvsp[0].integer_list_value);
+                                                                (yyval.value).frequency_caps_value = (struct betree_frequency_caps*)(yyvsp[0].integer_list_value);
+                                                            }
 #line 1329 "src/event_parser.c"
     break;
 

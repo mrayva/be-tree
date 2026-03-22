@@ -200,7 +200,10 @@ void free_config(struct config* config)
 void add_attr_domain_bounded_ranked_i(
     struct config* config, const char* attr, bool allow_undefined, std::int64_t min, std::int64_t max, int rank)
 {
-    struct value_bound bound = { .value_type = BETREE_INTEGER, .imin = min, .imax = max };
+    struct value_bound bound = {};
+    bound.value_type = BETREE_INTEGER;
+    bound.imin = min;
+    bound.imax = max;
     add_attr_domain(config, attr, bound, allow_undefined, rank);
 }
 
@@ -223,7 +226,10 @@ void add_attr_domain_ie(struct config* config, const char* attr, bool allow_unde
 void add_attr_domain_bounded_ranked_f(
     struct config* config, const char* attr, bool allow_undefined, double min, double max, int rank)
 {
-    struct value_bound bound = { .value_type = BETREE_FLOAT, .fmin = min, .fmax = max };
+    struct value_bound bound = {};
+    bound.value_type = BETREE_FLOAT;
+    bound.fmin = min;
+    bound.fmax = max;
     add_attr_domain(config, attr, bound, allow_undefined, rank);
 }
 
@@ -240,7 +246,10 @@ void add_attr_domain_f(struct config* config, const char* attr, bool allow_undef
 
 void add_attr_domain_ranked_b(struct config* config, const char* attr, bool allow_undefined, int rank)
 {
-    struct value_bound bound = { .value_type = BETREE_BOOLEAN, .bmin = false, .bmax = true };
+    struct value_bound bound = {};
+    bound.value_type = BETREE_BOOLEAN;
+    bound.bmin = false;
+    bound.bmax = true;
     add_attr_domain(config, attr, bound, allow_undefined, rank);
 }
 
@@ -257,7 +266,10 @@ void add_attr_domain_s(struct config* config, const char* attr, bool allow_undef
 void add_attr_domain_bounded_ranked_s(
     struct config* config, const char* attr, bool allow_undefined, std::size_t max, int rank)
 {
-    struct value_bound bound = { .value_type = BETREE_STRING, .smin = 0, .smax = max - 1 };
+    struct value_bound bound = {};
+    bound.value_type = BETREE_STRING;
+    bound.smin = 0;
+    bound.smax = max - 1;
     add_attr_domain(config, attr, bound, allow_undefined, rank);
 }
 
@@ -270,7 +282,10 @@ void add_attr_domain_bounded_s(
 void add_attr_domain_bounded_ranked_ie(
     struct config* config, const char* attr, bool allow_undefined, std::size_t max, int rank)
 {
-    struct value_bound bound = { .value_type = BETREE_INTEGER_ENUM, .smin = 0, .smax = max - 1 };
+    struct value_bound bound = {};
+    bound.value_type = BETREE_INTEGER_ENUM;
+    bound.smin = 0;
+    bound.smax = max - 1;
     add_attr_domain(config, attr, bound, allow_undefined, rank);
 }
 
@@ -288,7 +303,10 @@ void add_attr_domain_il(struct config* config, const char* attr, bool allow_unde
 void add_attr_domain_bounded_ranked_il(
     struct config* config, const char* attr, bool allow_undefined, std::int64_t min, std::int64_t max, int rank)
 {
-    struct value_bound bound = { .value_type = BETREE_INTEGER_LIST, .imin = min, .imax = max };
+    struct value_bound bound = {};
+    bound.value_type = BETREE_INTEGER_LIST;
+    bound.imin = min;
+    bound.imax = max;
     add_attr_domain(config, attr, bound, allow_undefined, rank);
 }
 
@@ -306,7 +324,10 @@ void add_attr_domain_sl(struct config* config, const char* attr, bool allow_unde
 void add_attr_domain_bounded_ranked_sl(
     struct config* config, const char* attr, bool allow_undefined, std::size_t max, int rank)
 {
-    struct value_bound bound = { .value_type = BETREE_STRING_LIST, .smin = 0, .smax = max - 1 };
+    struct value_bound bound = {};
+    bound.value_type = BETREE_STRING_LIST;
+    bound.smin = 0;
+    bound.smax = max - 1;
     add_attr_domain(config, attr, bound, allow_undefined, rank);
 }
 
@@ -318,7 +339,8 @@ void add_attr_domain_bounded_sl(
 
 void add_attr_domain_ranked_segments(struct config* config, const char* attr, bool allow_undefined, int rank)
 {
-    struct value_bound bound = { .value_type = BETREE_SEGMENTS };
+    struct value_bound bound = {};
+    bound.value_type = BETREE_SEGMENTS;
     add_attr_domain(config, attr, bound, allow_undefined, rank);
 }
 
@@ -329,7 +351,8 @@ void add_attr_domain_segments(struct config* config, const char* attr, bool allo
 
 void add_attr_domain_ranked_frequency(struct config* config, const char* attr, bool allow_undefined, int rank)
 {
-    struct value_bound bound = { .value_type = BETREE_FREQUENCY_CAPS };
+    struct value_bound bound = {};
+    bound.value_type = BETREE_FREQUENCY_CAPS;
     add_attr_domain(config, attr, bound, allow_undefined, rank);
 }
 

@@ -8,6 +8,8 @@
 
 #include "alloc.h"
 #include "ast.h"
+#include "ast_eval_shared.hpp"
+#include "ast_match_shared.hpp"
 #include "betree.h"
 #include "betree_err.h"
 #include "error.h"
@@ -18,146 +20,6 @@
 #include "utils.h"
 #include "value.h"
 #include "var.h"
-
-static bool match_not_all_of_string(struct value variable, struct ast_list_expr list_expr)
-{
-    struct string_value* xs;
-    std::size_t x_count;
-    struct string_value* ys;
-    std::size_t y_count;
-    if(variable.string_list_value->count < list_expr.value.integer_list_value->count) {
-        xs = variable.string_list_value->strings;
-        x_count = variable.string_list_value->count;
-        ys = list_expr.value.string_list_value->strings;
-        y_count = list_expr.value.integer_list_value->count;
-    }
-    else {
-        ys = variable.string_list_value->strings;
-        y_count = variable.string_list_value->count;
-        xs = list_expr.value.string_list_value->strings;
-        x_count = list_expr.value.integer_list_value->count;
-    }
-    std::size_t i = 0, j = 0;
-    while(i < x_count && j < y_count) {
-        auto x = &xs[i];
-        auto y = &ys[j];
-        if(x->str == y->str) {
-            return true;
-        }
-        if(y->str < x->str) {
-            j++;
-        }
-        else {
-            i++;
-        }
-    }
-    return false;
-}
-
-static bool d64binary_search(const std::int64_t arr[], std::size_t count, std::int64_t to_find)
-{
-    int imin = 0;
-    int imax = (int)count - 1;
-    while(imax >= imin) {
-        int imid = imin + ((imax - imin) / 2);
-        if(arr[imid] == to_find) {
-            return true;
-        }
-        if(arr[imid] < to_find) {
-            imin = imid + 1;
-        }
-        else {
-            imax = imid - 1;
-        }
-    }
-    return false;
-}
-
-static bool sbinary_search(struct string_value arr[], std::size_t count, betree_str_t to_find)
-{
-    int imin = 0;
-    int imax = (int)count - 1;
-    while(imax >= imin) {
-        int imid = imin + ((imax - imin) / 2);
-        if(arr[imid].str == to_find) {
-            return true;
-        }
-        if(arr[imid].str < to_find) {
-            imin = imid + 1;
-        }
-        else {
-            imax = imid - 1;
-        }
-    }
-    return false;
-}
-
-static bool integer_in_integer_list(std::int64_t integer, struct betree_integer_list* list)
-{
-    return d64binary_search(list->integers, list->count, integer);
-}
-
-static bool string_in_string_list(struct string_value string, struct betree_string_list* list)
-{
-    return sbinary_search(list->strings, list->count, string.str);
-}
-
-
-static bool match_all_of_int(struct value variable, struct ast_list_expr list_expr)
-{
-    auto xs = list_expr.value.integer_list_value->integers;
-    auto x_count = list_expr.value.integer_list_value->count;
-    auto ys = variable.integer_list_value->integers;
-    auto y_count = variable.integer_list_value->count;
-    if(x_count <= y_count) {
-        std::size_t from = 0, j = 0;
-        while(from < y_count && j < x_count) {
-            auto x = xs[j];
-            from = next_low(ys, from, y_count, x);
-            if(from < y_count && ys[from] == x) {
-                j++;
-            }
-            else {
-                return false;
-            }
-        }
-        if(j < x_count) {
-            return false;
-        }
-        return true;
-    }
-    return false;
-}
-
-static bool match_all_of_string(struct value variable, struct ast_list_expr list_expr)
-{
-    auto xs = list_expr.value.string_list_value->strings;
-    auto x_count = list_expr.value.string_list_value->count;
-    auto ys = variable.string_list_value->strings;
-    auto y_count = variable.string_list_value->count;
-    if(x_count <= y_count) {
-        std::size_t i = 0, j = 0;
-        while(i < y_count && j < x_count) {
-            auto x = &xs[j];
-            auto y = &ys[i];
-            if(y->str < x->str) {
-                i++;
-            }
-            else if(x->str == y->str) {
-                i++;
-                j++;
-            }
-            else {
-                return false;
-            }
-        }
-        if(j < x_count) {
-            return false;
-        }
-        return true;
-    }
-    return false;
-}
 
 static bool match_node_inner_err(const struct betree_variable** preds,
     const struct ast_node* node,
@@ -268,320 +130,44 @@ static bool match_special_expr_err(const struct betree_variable** preds,
     }
 }
 
-static bool match_is_null_expr_err(const struct betree_variable** preds,
-    const struct ast_is_null_expr is_null_expr,
-    betree_var_t* last_reason)
-{
-    struct value variable;
-    auto is_variable_defined = get_variable(is_null_expr.attr_var.var, preds, &variable);
-    *last_reason = is_null_expr.attr_var.var;
-
-    switch(is_null_expr.type) {
-        case AST_IS_NULL:
-            return !is_variable_defined;
-        case AST_IS_NOT_NULL:
-            return is_variable_defined;
-        case AST_IS_EMPTY:
-            return is_variable_defined && is_empty_list(variable);
-        default:
-            std::abort();
-    }
-}
-
-static bool match_not_all_of_int(struct value variable, struct ast_list_expr list_expr)
-{
-    std::int64_t* xs;
-    std::size_t x_count;
-    std::int64_t* ys;
-    std::size_t y_count;
-    if(variable.integer_list_value->count < list_expr.value.integer_list_value->count) {
-        xs = variable.integer_list_value->integers;
-        x_count = variable.integer_list_value->count;
-        ys = list_expr.value.integer_list_value->integers;
-        y_count = list_expr.value.integer_list_value->count;
-    }
-    else {
-        ys = variable.integer_list_value->integers;
-        y_count = variable.integer_list_value->count;
-        xs = list_expr.value.integer_list_value->integers;
-        x_count = list_expr.value.integer_list_value->count;
-    }
-    std::size_t i = 0, from = 0;
-    while(i < x_count && from < y_count) {
-        auto x = xs[i];
-        from = next_low(ys, from, y_count, x);
-        // first check that new index is in array
-        if(from < y_count && ys[from] == x) {
-            return true;
-        }
-        else {
-            i++;
-        }
-    }
-    return false;
-}
-
-static void invalid_expr(const char* msg)
-{
-    std::fprintf(stderr, "%s", msg);
-    std::abort();
-}
-
-
 static bool match_list_expr_err(const struct betree_variable** preds,
     const struct ast_list_expr list_expr,
     betree_var_t* last_reason)
 {
-    *last_reason = list_expr.attr_var.var;
-    struct value variable;
-    auto is_variable_defined = get_variable(list_expr.attr_var.var, preds, &variable);
-    if(is_variable_defined == false) {
-        return false;
-    }
-    switch(list_expr.op) {
-        case AST_LIST_ONE_OF:
-        case AST_LIST_NONE_OF: {
-            bool result = false;
-            switch(list_expr.value.value_type) {
-                case AST_LIST_VALUE_INTEGER_LIST:
-                    result = match_not_all_of_int(variable, list_expr);
-                    break;
-                case AST_LIST_VALUE_STRING_LIST: {
-                    result = match_not_all_of_string(variable, list_expr);
-                    break;
-                }
-                default:
-                    std::abort();
-            }
-            switch(list_expr.op) {
-                case AST_LIST_ONE_OF:
-                    return result;
-                case AST_LIST_NONE_OF:
-                    return !result;
-                case AST_LIST_ALL_OF:
-                    invalid_expr("Should never happen");
-                    return false;
-                default:
-                    std::abort();
-            }
-        }
-        case AST_LIST_ALL_OF: {
-            switch(list_expr.value.value_type) {
-                case AST_LIST_VALUE_INTEGER_LIST:
-                    if(match_all_of_int(variable, list_expr) == false) {
-                        *last_reason = list_expr.attr_var.var;
-                    }
-                    return match_all_of_int(variable, list_expr);
-                case AST_LIST_VALUE_STRING_LIST:
-                    if(match_all_of_string(variable, list_expr) == false) {
-                        *last_reason = list_expr.attr_var.var;
-                    }
-                    return match_all_of_string(variable, list_expr);
-                default:
-                    std::abort();
-            }
-        }
-        default:
-            std::abort();
-    }
+    return ast_eval_shared::match_list_expr(
+        preds, list_expr, [last_reason](betree_var_t var) { *last_reason = var; });
 }
 
 static bool match_set_expr_err(const struct betree_variable** preds,
     const struct ast_set_expr set_expr,
     betree_var_t* last_reason)
 {
-    auto left = set_expr.left_value;
-    auto right = set_expr.right_value;
-    bool is_in;
-
-    if(left.value_type == AST_SET_LEFT_VALUE_INTEGER
-        && right.value_type == AST_SET_RIGHT_VALUE_VARIABLE) {
-        *last_reason = set_expr.right_value.variable_value.var;
-        struct betree_integer_list* variable;
-        auto is_variable_defined = get_integer_list_var(right.variable_value.var, preds, &variable);
-        if(is_variable_defined == false) {
-            return false;
-        }
-        is_in = integer_in_integer_list(left.integer_value, variable);
-    }
-    else if(left.value_type == AST_SET_LEFT_VALUE_STRING
-        && right.value_type == AST_SET_RIGHT_VALUE_VARIABLE) {
-        *last_reason = set_expr.right_value.variable_value.var;
-        struct betree_string_list* variable;
-        auto is_variable_defined = get_string_list_var(right.variable_value.var, preds, &variable);
-        if(is_variable_defined == false) {
-            return false;
-        }
-        is_in = string_in_string_list(left.string_value, variable);
-    }
-    else if(left.value_type == AST_SET_LEFT_VALUE_VARIABLE
-        && right.value_type == AST_SET_RIGHT_VALUE_INTEGER_LIST) {
-        *last_reason = set_expr.left_value.variable_value.var;
-        std::int64_t variable;
-        auto is_variable_defined = get_integer_var(left.variable_value.var, preds, &variable);
-        if(is_variable_defined == false) {
-            return false;
-        }
-        is_in = integer_in_integer_list(variable, right.integer_list_value);
-    }
-    else if(left.value_type == AST_SET_LEFT_VALUE_VARIABLE
-        && right.value_type == AST_SET_RIGHT_VALUE_STRING_LIST) {
-        *last_reason = set_expr.left_value.variable_value.var;
-        struct string_value variable;
-        auto is_variable_defined = get_string_var(left.variable_value.var, preds, &variable);
-        if(is_variable_defined == false) {
-            return false;
-        }
-        is_in = string_in_string_list(variable, right.string_list_value);
-    }
-    else {
-        invalid_expr("invalid set expression");
-        return false;
-    }
-    switch(set_expr.op) {
-        case AST_SET_NOT_IN: {
-            return !is_in;
-        }
-        case AST_SET_IN: {
-            return is_in;
-        }
-        default:
-            std::abort();
-    }
+    return ast_eval_shared::match_set_expr(
+        preds, set_expr, [last_reason](betree_var_t var) { *last_reason = var; });
 }
 
 static bool match_compare_expr_err(const struct betree_variable** preds,
     const struct ast_compare_expr compare_expr,
     betree_var_t* last_reason)
 {
-    *last_reason = compare_expr.attr_var.var;
-    struct value variable;
-    auto is_variable_defined = get_variable(compare_expr.attr_var.var, preds, &variable);
-    if(is_variable_defined == false) {
-        return false;
-    }
-    switch(compare_expr.op) {
-        case AST_COMPARE_LT: {
-            switch(compare_expr.value.value_type) {
-                case AST_COMPARE_VALUE_INTEGER: {
-                    auto result = variable.integer_value < compare_expr.value.integer_value;
-                    return result;
-                }
-                case AST_COMPARE_VALUE_FLOAT: {
-                    auto result = variable.float_value < compare_expr.value.float_value;
-                    return result;
-                }
-                default:
-                    std::abort();
-            }
-        }
-        case AST_COMPARE_LE: {
-            switch(compare_expr.value.value_type) {
-                case AST_COMPARE_VALUE_INTEGER: {
-                    auto result = variable.integer_value <= compare_expr.value.integer_value;
-                    return result;
-                }
-                case AST_COMPARE_VALUE_FLOAT: {
-                    auto result = variable.float_value <= compare_expr.value.float_value;
-                    return result;
-                }
-                default:
-                    std::abort();
-            }
-        }
-        case AST_COMPARE_GT: {
-            switch(compare_expr.value.value_type) {
-                case AST_COMPARE_VALUE_INTEGER: {
-                    auto result = variable.integer_value > compare_expr.value.integer_value;
-                    return result;
-                }
-                case AST_COMPARE_VALUE_FLOAT: {
-                    auto result = variable.float_value > compare_expr.value.float_value;
-                    return result;
-                }
-                default:
-                    std::abort();
-            }
-        }
-        case AST_COMPARE_GE: {
-            switch(compare_expr.value.value_type) {
-                case AST_COMPARE_VALUE_INTEGER: {
-                    auto result = variable.integer_value >= compare_expr.value.integer_value;
-                    return result;
-                }
-                case AST_COMPARE_VALUE_FLOAT: {
-                    auto result = variable.float_value >= compare_expr.value.float_value;
-                    return result;
-                }
-                default:
-                    std::abort();
-            }
-        }
-        default:
-            std::abort();
-    }
+    return ast_eval_shared::match_compare_expr(
+        preds, compare_expr, [last_reason](betree_var_t var) { *last_reason = var; });
 }
 
 static bool match_equality_expr_err(const struct betree_variable** preds,
     const struct ast_equality_expr equality_expr,
     betree_var_t* last_reason)
 {
-    struct value variable;
-    *last_reason = equality_expr.attr_var.var;
-    auto is_variable_defined = get_variable(equality_expr.attr_var.var, preds, &variable);
-    if(is_variable_defined == false) {
-        return false;
-    }
-    switch(equality_expr.op) {
-        case AST_EQUALITY_EQ: {
-            switch(equality_expr.value.value_type) {
-                case AST_EQUALITY_VALUE_INTEGER: {
-                    auto result = variable.integer_value == equality_expr.value.integer_value;
-                    return result;
-                }
-                case AST_EQUALITY_VALUE_FLOAT: {
-                    auto result = feq(variable.float_value, equality_expr.value.float_value);
-                    return result;
-                }
-                case AST_EQUALITY_VALUE_STRING: {
-                    auto result = variable.string_value.str == equality_expr.value.string_value.str;
-                    return result;
-                }
-                case AST_EQUALITY_VALUE_INTEGER_ENUM: {
-                    auto result = variable.integer_enum_value.ienum
-                        == equality_expr.value.integer_enum_value.ienum;
-                    return result;
-                }
-                default:
-                    std::abort();
-            }
-        }
-        case AST_EQUALITY_NE: {
-            switch(equality_expr.value.value_type) {
-                case AST_EQUALITY_VALUE_INTEGER: {
-                    auto result = variable.integer_value != equality_expr.value.integer_value;
-                    return result;
-                }
-                case AST_EQUALITY_VALUE_FLOAT: {
-                    auto result = fne(variable.float_value, equality_expr.value.float_value);
-                    return result;
-                }
-                case AST_EQUALITY_VALUE_STRING: {
-                    auto result = variable.string_value.str != equality_expr.value.string_value.str;
-                    return result;
-                }
-                case AST_EQUALITY_VALUE_INTEGER_ENUM: {
-                    auto result = variable.integer_enum_value.ienum
-                        != equality_expr.value.integer_enum_value.ienum;
-                    return result;
-                }
-                default:
-                    std::abort();
-            }
-        }
-        default:
-            std::abort();
-    }
+    return ast_eval_shared::match_equality_expr(
+        preds, equality_expr, [last_reason](betree_var_t var) { *last_reason = var; });
+}
+
+static bool match_is_null_expr_err(const struct betree_variable** preds,
+    const struct ast_is_null_expr is_null_expr,
+    betree_var_t* last_reason)
+{
+    return ast_eval_shared::match_is_null_expr(
+        preds, is_null_expr, [last_reason](betree_var_t var) { *last_reason = var; });
 }
 
 static bool match_bool_expr_err(const struct betree_variable** preds,

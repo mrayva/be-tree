@@ -58,6 +58,31 @@ void betree_bulk_insert_with_constants(struct betree_err* tree,
 void make_attr_domains(struct betree_err* tree, size_t config);
 void make_attr_domains_undefined(struct betree_err* tree, size_t config, size_t config_undefined);
 
+static int assert_match_parity(const struct report* report, const struct report_err* report_err)
+{
+    mu_assert(report->matched == report_err->matched, "matchedParity");
+    for(size_t i = 0; i < report->matched; ++i) {
+        mu_assert(report->subs[i] == report_err->subs[i], "matchedIdParity");
+    }
+    return 0;
+}
+
+static int assert_report_err_id_set(const struct report_err* report, const uint64_t* expected, size_t count)
+{
+    mu_assert(report->matched == count, "matchedCount");
+    for(size_t i = 0; i < count; ++i) {
+        bool found = false;
+        for(size_t j = 0; j < report->matched; ++j) {
+            if(report->subs[j] == expected[i]) {
+                found = true;
+                break;
+            }
+        }
+        mu_assert(found, "matchedIdSet");
+    }
+    return 0;
+}
+
 int test_bool_fail()
 {
     struct betree_err* tree = betree_make_err();
@@ -534,6 +559,75 @@ int test_memoize_fail()
     return 0;
 }
 
+int test_memoize_fail_shared_reason()
+{
+    struct betree_err* tree = betree_make_err();
+
+    make_attr_domains(tree, ATTR_CONFIG_2(ATTR_BOOL, ATTR_INT));
+
+    const char* exprs[] = { "i = 1 and b", "i = 1 and not b" };
+    const size_t exprs_count = 2;
+    betree_bulk_insert(tree, exprs, exprs_count);
+
+    betree_make_sub_ids(tree);
+
+    const char* event = "{\"b\": true, \"i\": 2}";
+    struct report_err* report = make_report_err(tree);
+    betree_search_err(tree, event, report);
+
+    mu_assert(report->matched == 0, "goodEvent");
+    mu_assert(report->evaluated == 2, "evaluated");
+    mu_assert(report->memoized == 1, "memoizedSharedPredicate");
+
+    dynamic_array_t* rlist = betree_reason_map_get(report->reason_sub_id_list, 1);
+    mu_assert(rlist != NULL, "goodReport");
+    mu_assert(rlist->size == 2, "reasonCount");
+    mu_assert(
+        ((betree_var_t)rlist->data[0] == (betree_var_t)1
+            && (betree_var_t)rlist->data[1] == (betree_var_t)2)
+            || ((betree_var_t)rlist->data[0] == (betree_var_t)2
+                && (betree_var_t)rlist->data[1] == (betree_var_t)1),
+        "goodReason");
+    mu_assert(strcmp(report->reason_sub_id_list->reasons[1]->name, "i") == 0, "goodReasonName");
+
+    free_report_err(report);
+    betree_free_err(tree);
+    return 0;
+}
+
+int test_memoize_fail_shared_reason_ids()
+{
+    struct betree_err* tree = betree_make_err();
+
+    make_attr_domains(tree, ATTR_CONFIG_2(ATTR_BOOL, ATTR_INT));
+
+    const char* exprs[] = { "i = 1 and b", "i = 1 and not b", "i = 2 and b" };
+    const size_t exprs_count = 3;
+    const uint64_t ids[] = { 2, 3 };
+    const size_t sz = 2;
+    betree_bulk_insert(tree, exprs, exprs_count);
+
+    betree_make_sub_ids(tree);
+
+    const char* event = "{\"b\": true, \"i\": 2}";
+    struct report_err* report = make_report_err(tree);
+    betree_search_ids_err(tree, event, report, ids, sz);
+
+    mu_assert(report->matched == 1 && report->subs[0] == 3, "goodMatch");
+    mu_assert(report->evaluated == 2, "evaluated");
+    mu_assert(report->memoized == 0, "filteredSharedPredicateNotReused");
+
+    dynamic_array_t* rlist = betree_reason_map_get(report->reason_sub_id_list, 1);
+    mu_assert(rlist != NULL, "goodReport");
+    mu_assert(rlist->size == 1, "reasonCount");
+    mu_assert((betree_var_t)rlist->data[0] == (betree_var_t)2, "goodReason");
+    mu_assert(strcmp(report->reason_sub_id_list->reasons[1]->name, "i") == 0, "goodReasonName");
+
+    free_report_err(report);
+    betree_free_err(tree);
+    return 0;
+}
+
 int test_all_search_term()
 {
     struct betree_err* tree = betree_make_err();
@@ -656,6 +750,281 @@ int test_event_search_reason()
     return 0;
 }
 
+int test_excluded_branch_reason()
+{
+    struct betree_err* tree = betree_make_err();
+
+    make_attr_domains(tree, ATTR_CONFIG_1(ATTR_INT));
+
+    const char* exprs[] = { "i = 0", "i = 1" };
+    const size_t exprs_count = 2;
+    betree_bulk_insert(tree, exprs, exprs_count);
+
+    betree_make_sub_ids(tree);
+
+    struct report_err* report = make_report_err(tree);
+    betree_search_err(tree, "{\"i\": 0}", report);
+
+    mu_assert(report->matched == 1 && report->subs[0] == 1, "goodMatch");
+    dynamic_array_t* rlist = betree_reason_map_get(report->reason_sub_id_list, 0);
+    mu_assert(rlist != NULL, "goodReport");
+    mu_assert(rlist->size == 1, "singleExcludedReason");
+    mu_assert((betree_var_t)rlist->data[0] == (betree_var_t)2, "excludedBranchSub");
+    mu_assert(strcmp(report->reason_sub_id_list->reasons[0]->name, "i") == 0, "goodReason");
+
+    free_report_err(report);
+    betree_free_err(tree);
+    return 0;
+}
+
+int test_search_ids_err_excluded_and_evaluated_reasons()
+{
+    struct betree_err* tree = betree_make_err();
+
+    make_attr_domains(tree, ATTR_CONFIG_2(ATTR_BOOL, ATTR_INT));
+
+    const char* exprs[] = { "i = 0", "i = 1", "i = 0 and b" };
+    const size_t exprs_count = 3;
+    const uint64_t ids[] = { 2, 3 };
+    const size_t sz = 2;
+    betree_bulk_insert(tree, exprs, exprs_count);
+
+    betree_make_sub_ids(tree);
+
+    struct report_err* report = make_report_err(tree);
+    betree_search_ids_err(tree, "{\"b\": false, \"i\": 0}", report, ids, sz);
+
+    mu_assert(report->matched == 0, "goodMatch");
+
+    dynamic_array_t* int_reason = betree_reason_map_get(report->reason_sub_id_list, 1);
+    mu_assert(int_reason != NULL, "intReason");
+    mu_assert(int_reason->size == 1, "singleIntReason");
+    mu_assert((betree_var_t)int_reason->data[0] == (betree_var_t)2, "excludedBranchSub");
+    mu_assert(strcmp(report->reason_sub_id_list->reasons[1]->name, "i") == 0, "goodIntName");
+
+    dynamic_array_t* bool_reason = betree_reason_map_get(report->reason_sub_id_list, 0);
+    mu_assert(bool_reason != NULL, "boolReason");
+    mu_assert(bool_reason->size == 1, "singleBoolReason");
+    mu_assert((betree_var_t)bool_reason->data[0] == (betree_var_t)3, "evaluatedFailSub");
+    mu_assert(strcmp(report->reason_sub_id_list->reasons[0]->name, "b") == 0, "goodBoolName");
+
+    free_report_err(report);
+    betree_free_err(tree);
+    return 0;
+}
+
+int test_allow_undefined_reason_search_by_domain()
+{
+    struct betree_err* tree = betree_make_err();
+
+    make_attr_domains_undefined(tree,
+        ATTR_CONFIG_5(ATTR_INT, ATTR_STR, ATTR_INT_LIST, ATTR_STR_LIST, ATTR_INT64),
+        ATTR_CONFIG_5(ATTR_INT, ATTR_STR, ATTR_INT_LIST, ATTR_STR_LIST, ATTR_INT64));
+
+    const char* exprs[] = {
+        "i is null",
+        "s is null",
+        "il is null",
+        "sl is null",
+        "now is null",
+        "il is empty",
+        "sl is empty",
+    };
+    const size_t exprs_count = 7;
+    betree_bulk_insert(tree, exprs, exprs_count);
+
+    betree_make_sub_ids(tree);
+
+    struct report_err* report = make_report_err(tree);
+    mu_assert(betree_search_err(tree, "{}", report), "searchSucceeds");
+    mu_assert(report->matched == 5, "goodMatchCount");
+    mu_assert(report->subs[0] == 1 && report->subs[1] == 2 && report->subs[2] == 3
+            && report->subs[3] == 4 && report->subs[4] == 5,
+        "goodMatchedSubs");
+
+    betree_var_t invalid_event
+        = ADDITIONAL_REASON(tree->config->attr_domain_count, REASON_INVALID_EVENT);
+    dynamic_array_t* invalid_reason = betree_reason_map_get(report->reason_sub_id_list, invalid_event);
+    mu_assert(invalid_reason == NULL || invalid_reason->size == 0, "noInvalidEventReason");
+
+    free_report_err(report);
+    betree_free_err(tree);
+    return 0;
+}
+
+int test_disallow_undefined_reason_invalid_event()
+{
+    struct betree_err* tree = betree_make_err();
+
+    make_attr_domains(tree, ATTR_CONFIG_2(ATTR_INT, ATTR_INT_LIST));
+
+    const char* exprs[] = { "i = 1", "il is empty" };
+    const size_t exprs_count = 2;
+    betree_bulk_insert(tree, exprs, exprs_count);
+
+    betree_make_sub_ids(tree);
+
+    struct report_err* report = make_report_err(tree);
+    mu_assert(!betree_search_err(tree, "{}", report), "searchFailsValidation");
+    mu_assert(report->matched == 0, "noMatches");
+
+    betree_var_t invalid_event
+        = ADDITIONAL_REASON(tree->config->attr_domain_count, REASON_INVALID_EVENT);
+    dynamic_array_t* invalid_reason = betree_reason_map_get(report->reason_sub_id_list, invalid_event);
+    mu_assert(invalid_reason != NULL, "invalidEventReason");
+    mu_assert(invalid_reason->size == 2, "allSubsTagged");
+    mu_assert(
+        ((betree_var_t)invalid_reason->data[0] == (betree_var_t)1
+            && (betree_var_t)invalid_reason->data[1] == (betree_var_t)2)
+            || ((betree_var_t)invalid_reason->data[0] == (betree_var_t)2
+                && (betree_var_t)invalid_reason->data[1] == (betree_var_t)1),
+        "goodReasonSubs");
+
+    free_report_err(report);
+    betree_free_err(tree);
+    return 0;
+}
+
+int test_search_err_match_set_parity()
+{
+    struct betree* tree = betree_make();
+    struct betree_err* tree_err = betree_make_err();
+
+    add_attr_domain_b(tree->config, "flag", false);
+    add_attr_domain_bounded_i(tree->config, "age", false, 0, 120);
+    add_attr_domain_s(tree->config, "country", false);
+
+    add_attr_domain_b(tree_err->config, "flag", false);
+    add_attr_domain_bounded_i(tree_err->config, "age", false, 0, 120);
+    add_attr_domain_s(tree_err->config, "country", false);
+
+    const char* exprs[] = {
+        "flag and age >= 21",
+        "country = \"USA\"",
+        "flag and country = \"CAN\"",
+    };
+
+    for(size_t i = 0; i < 3; ++i) {
+        mu_assert(betree_insert(tree, i + 1, exprs[i]), "");
+        mu_assert(betree_insert_err(tree_err, i + 1, exprs[i]), "");
+    }
+
+    struct report* report = make_report();
+    struct report_err* report_err = make_report_err(tree_err);
+    const char* event = "{\"flag\": true, \"age\": 25, \"country\": \"USA\"}";
+
+    mu_assert(betree_search(tree, event, report), "");
+    mu_assert(betree_search_err(tree_err, event, report_err), "");
+    mu_assert(assert_match_parity(report, report_err) == 0, "");
+
+    const uint64_t ids[] = {1, 2, 3};
+    struct report* ids_report = make_report();
+    struct report_err* ids_report_err = make_report_err(tree_err);
+    mu_assert(betree_search_ids(tree, event, ids_report, ids, 3), "");
+    mu_assert(betree_search_ids_err(tree_err, event, ids_report_err, ids, 3), "");
+    mu_assert(assert_match_parity(ids_report, ids_report_err) == 0, "");
+
+    free_report(ids_report);
+    free_report_err(ids_report_err);
+    free_report(report);
+    free_report_err(report_err);
+    betree_free(tree);
+    betree_free_err(tree_err);
+    return 0;
+}
+
+int test_search_with_event_err_parity()
+{
+    struct betree_err* tree = betree_make_err();
+
+    add_attr_domain_b(tree->config, "flag", false);
+    add_attr_domain_bounded_i(tree->config, "age", false, 0, 120);
+    add_attr_domain_s(tree->config, "country", false);
+
+    const char* exprs[] = {
+        "flag and age >= 21",
+        "country = \"USA\"",
+        "flag and country = \"CAN\"",
+    };
+
+    betree_bulk_insert(tree, exprs, 3);
+    betree_make_sub_ids(tree);
+
+    struct report_err* json_report = make_report_err(tree);
+    const char* event_json = "{\"flag\": true, \"age\": 25, \"country\": \"USA\"}";
+    mu_assert(betree_search_err(tree, event_json, json_report), "");
+
+    struct betree_event* event = betree_make_event_err(tree);
+    betree_set_variable(event, 0, betree_make_boolean_variable("flag", true));
+    betree_set_variable(event, 1, betree_make_integer_variable("age", 25));
+    betree_set_variable(event, 2, betree_make_string_variable("country", "USA"));
+
+    struct report_err* event_report = make_report_err(tree);
+    mu_assert(betree_search_with_event_err(tree, event, event_report), "");
+
+    const uint64_t expected[] = {1, 2};
+    mu_assert(assert_report_err_id_set(json_report, expected, 2) == 0, "");
+    mu_assert(assert_report_err_id_set(event_report, expected, 2) == 0, "");
+
+    free_report_err(event_report);
+    betree_free_event(event);
+    free_report_err(json_report);
+    betree_free_err(tree);
+    return 0;
+}
+
+int test_search_with_event_ids_err_invalid_event_reason()
+{
+    struct betree_err* tree = betree_make_err();
+
+    make_attr_domains(tree, ATTR_CONFIG_2(ATTR_INT, ATTR_INT_LIST));
+
+    const char* exprs[] = { "i = 1", "il is empty", "i = 2" };
+    betree_bulk_insert(tree, exprs, 3);
+    betree_make_sub_ids(tree);
+
+    struct betree_event* invalid_event = betree_make_event_err(tree);
+    betree_set_variable(invalid_event, 1, betree_make_integer_list_variable("il", betree_make_integer_list(0)));
+
+    struct report_err* report = make_report_err(tree);
+    mu_assert(!betree_search_with_event_err(tree, invalid_event, report), "searchFailsValidation");
+    mu_assert(report->matched == 0, "noMatches");
+
+    betree_var_t invalid_reason_id
+        = ADDITIONAL_REASON(tree->config->attr_domain_count, REASON_INVALID_EVENT);
+    dynamic_array_t* invalid_reason = betree_reason_map_get(report->reason_sub_id_list, invalid_reason_id);
+    mu_assert(invalid_reason != NULL, "invalidEventReason");
+    mu_assert(invalid_reason->size == 3, "allSubsTagged");
+
+    free_report_err(report);
+    betree_free_event(invalid_event);
+
+    struct betree_event* invalid_event_ids = betree_make_event_err(tree);
+    betree_set_variable(invalid_event_ids, 1, betree_make_integer_list_variable("il", betree_make_integer_list(0)));
+
+    const uint64_t ids[] = {2, 3};
+    struct report_err* ids_report = make_report_err(tree);
+    mu_assert(!betree_search_with_event_ids_err(tree, invalid_event_ids, ids_report, ids, 2),
+        "searchIdsFailsValidation");
+    mu_assert(ids_report->matched == 0, "noMatchesIds");
+
+    dynamic_array_t* invalid_reason_ids
+        = betree_reason_map_get(ids_report->reason_sub_id_list, invalid_reason_id);
+    mu_assert(invalid_reason_ids != NULL, "invalidEventReasonIds");
+    mu_assert(invalid_reason_ids->size == 2, "filteredSubsTagged");
+    mu_assert(
+        ((betree_var_t)invalid_reason_ids->data[0] == (betree_var_t)2
+            && (betree_var_t)invalid_reason_ids->data[1] == (betree_var_t)3)
+            || ((betree_var_t)invalid_reason_ids->data[0] == (betree_var_t)3
+                && (betree_var_t)invalid_reason_ids->data[1] == (betree_var_t)2),
+        "goodFilteredReasonSubs");
+
+    free_report_err(ids_report);
+    betree_free_event(invalid_event_ids);
+    betree_free_err(tree);
+    return 0;
+}
+
 
 void make_attr_domains(struct betree_err* tree, size_t config)
 {
@@ -739,10 +1108,19 @@ int all_tests()
     mu_run_test(test_multiple_bool_exprs_fail);
 
     mu_run_test(test_memoize_fail);
+    mu_run_test(test_memoize_fail_shared_reason);
+    mu_run_test(test_memoize_fail_shared_reason_ids);
 
     mu_run_test(test_all_search_term);
 
     mu_run_test(test_event_search_reason);
+    mu_run_test(test_excluded_branch_reason);
+    mu_run_test(test_search_ids_err_excluded_and_evaluated_reasons);
+    mu_run_test(test_allow_undefined_reason_search_by_domain);
+    mu_run_test(test_disallow_undefined_reason_invalid_event);
+    mu_run_test(test_search_err_match_set_parity);
+    mu_run_test(test_search_with_event_err_parity);
+    mu_run_test(test_search_with_event_ids_err_invalid_event_reason);
 
     return 0;
 }

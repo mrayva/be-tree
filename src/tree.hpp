@@ -37,10 +37,8 @@ struct cnode;
 
 struct lnode {
     struct cnode* parent;
-    struct {
-        std::size_t sub_count;
-        struct betree_sub** subs;
-    };
+    std::size_t sub_count;
+    struct betree_sub** subs;
     std::size_t max;
 };
 
@@ -71,27 +69,21 @@ enum c_parent_e {
 
 struct cdir {
     enum c_parent_e parent_type;
-    union {
-        struct pnode* pnode_parent;
-        struct cdir* cdir_parent;
-    };
+    struct pnode* pnode_parent;
+    struct cdir* cdir_parent;
     struct attr_var attr_var;
     struct value_bound bound;
     struct cnode* cnode;
     struct cdir* lchild;
     struct cdir* rchild;
-    struct {
-        void** subs_data_array;
-        std::size_t subs_data_count;
-    };
+    void** subs_data_array;
+    std::size_t subs_data_count;
 };
 
 struct pdir {
     struct cnode* parent;
-    struct {
-        std::size_t pnode_count;
-        struct pnode** pnodes;
-    };
+    std::size_t pnode_count;
+    struct pnode** pnodes;
 };
 
 struct subs_to_eval {

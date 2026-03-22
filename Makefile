@@ -1,95 +1,53 @@
 ################################################################################
-# Variables
+# Deprecated build shim
 ################################################################################
 
-UNAME := $(shell uname)
+.DEFAULT_GOAL := help
 
-CFLAGS := -O3 -g -std=gnu11 -Wall -Wextra -Wshadow -Wfloat-equal -Wundef -Wcast-align \
-	-Wwrite-strings -Wunreachable-code -Wformat=2 -Wswitch-enum \
-	-Wswitch-default -Winit-self -Wno-strict-aliasing
+LEX ?= flex
+YACC ?= bison
+YFLAGS ?= -dv
 
-LDFLAGS := -lm -fPIC
-LDFLAGS_TESTS := $(LDFLAGS) -lgsl -lgslcblas
+GENERATED = src/lexer.c src/parser.c src/event_lexer.c src/event_parser.c \
+	src/lexer.h src/parser.h src/event_lexer.h src/event_parser.h
 
-LEX_SOURCES = $(wildcard src/*.l)
-LEX_INTERMEDIATES = \
-	$(patsubst %.l,%.c,${LEX_SOURCES}) \
-	$(patsubst %.l,%.h,${LEX_SOURCES})
+define DEPRECATED_BUILD_MSG
+	@printf '%s\n' \
+	'The legacy Makefile build has been retired.' \
+	'Use the supported CMake workflow instead:' \
+	'  cmake -S . -B build' \
+	'  cmake --build build -j4' \
+	'  ctest --test-dir build --output-on-failure'
+endef
 
-YACC_SOURCES = $(wildcard src/*.y)
-YACC_INTERMEDIATES = \
-	$(patsubst %.y,%.c,${YACC_SOURCES}) \
-	$(patsubst %.y,%.h,${YACC_SOURCES})
+help:
+	@printf '%s\n' \
+	'Supported targets:' \
+	'  make src/lexer.c src/parser.c src/event_lexer.c src/event_parser.c' \
+	'    Regenerate tracked lexer/parser sources with flex/bison.' \
+	'' \
+	'The old Make-based library/test build has been retired.' \
+	'Use CMake for builds and tests.'
 
-INTERMEDIATES = $(LEX_INTERMEDIATES) $(YACC_INTERMEDIATES)
-GENERATED_OBJECTS = \
-	$(patsubst %.l,%.o,$(LEX_SOURCES)) \
-	$(patsubst %.y,%.o,$(YACC_SOURCES))
+all:
+	$(DEPRECATED_BUILD_MSG)
+	@false
 
-SOURCES = $(filter-out $(INTERMEDIATES),$(wildcard src/*.c))
-OBJECTS = \
-	$(patsubst %.c,%.o,$(SOURCES)) \
-	$(GENERATED_OBJECTS)
+dev:
+	$(DEPRECATED_BUILD_MSG)
+	@false
 
-# Allow filtering tests via TESTS variable (e.g., TESTS='*_cb_*' make test)
-TESTS ?= *
-TEST_SOURCES=$(wildcard tests/$(TESTS)_tests.c)
-TEST_BINARIES=$(patsubst tests/%.c,build/tests/%,${TEST_SOURCES})
+test:
+	$(DEPRECATED_BUILD_MSG)
+	@false
 
-LEX?=flex
-YACC?=bison
-YFLAGS?=-dv
+valgrind:
+	$(DEPRECATED_BUILD_MSG)
+	@false
 
-VALGRIND=valgrind --tool=memcheck --leak-check=full --track-origins=yes --suppressions=valgrind.supp --error-exitcode=1
-CALLGRIND=valgrind --tool=callgrind --instr-atstart=no
-CACHEGRIND=valgrind --tool=cachegrind
-MASSIF=valgrind --tool=massif
-TIDY=clang-tidy
-
-ERTS_INCLUDE_DIR ?= $(shell erl -noshell -eval "io:format(\"~ts/erts-~ts/include/\", [code:root_dir(), erlang:system_info(version)])." -s init stop)
-ERL_INTERFACE_INCLUDE_DIR ?= $(shell erl -noshell -eval "io:format(\"~ts\", [code:lib_dir(erl_interface, include)])." -s init stop)
-ERL_INTERFACE_LIB_DIR ?= $(shell erl -noshell -eval "io:format(\"~ts\", [code:lib_dir(erl_interface, lib)])." -s init stop)
-
-ifdef NIF
-	DEFINES += -DNIF
-	CFLAGS += -I $(ERTS_INCLUDE_DIR) -I $(ERL_INTERFACE_INCLUDE_DIR)
-	LDFLAGS += -L $(ERL_INTERFACE_LIB_DIR) -lei
-endif
-
-################################################################################
-# Default Target
-################################################################################
-
-#all: build/libbetree.so build/libbetree.a
-#dev: build/libbetree.so build/libbetree.a test valgrind
-.DEFAULT_GOAL := build/libbetree.a
-all: build/libbetree.a
-
-dev: $(GENERATED_OBJECTS) build/libbetree.a test valgrind
-
-dot:
-	# dot -Tpng data/betree.dot -o data/betree.png
-	dot -Tsvg data/betree.dot -o data/betree.svg
-
-neato:
-	neato -Tsvg data/betree.dot -o data/betree.svg
-
-################################################################################
-# Binaries
-################################################################################
-
-#build/libbetree.so: build $(OBJECTS)
-	#$(CC) -shared $(OBJECTS) -o $@
-
-build/libbetree.a: $(OBJECTS) | build
-	$(AR) rcs $@ $(OBJECTS)
-
-build:
-	mkdir -p $@
-
-################################################################################
-# Bison / Flex
-################################################################################
+build-test-benchmark:
+	$(DEPRECATED_BUILD_MSG)
+	@false
 
 %.c %.h: %.l
 	$(LEX) --header-file=$*.h -o $*.c $<
@@ -97,95 +55,14 @@ build:
 %.c %.h: %.y
 	$(YACC) $(YFLAGS) -o $*.c $<
 
-# Dependencies for generated files
-# Parsers generate both .c and .h files
 src/parser.c src/parser.h: src/parser.y
 src/event_parser.c src/event_parser.h: src/event_parser.y
-
-# Lexers depend on parser headers and generate both .c and .h files
 src/lexer.c src/lexer.h: src/lexer.l src/parser.h
 src/event_lexer.c src/event_lexer.h: src/event_lexer.l src/event_parser.h
 
-# Object files depend on their sources and related headers
-src/parser.o: src/parser.c src/parser.h src/lexer.h
-src/event_parser.o: src/event_parser.c src/event_parser.h src/event_lexer.h
-src/lexer.o: src/lexer.c src/lexer.h src/parser.h
-src/event_lexer.o: src/event_lexer.c src/event_lexer.h src/event_parser.h
-
-################################################################################
-# BETree
-################################################################################
-
-src/%.o: src/%.c
-	$(CC) $(DEFINES) $(CFLAGS) -c -o $@ $< $(LDFLAGS)
-
-################################################################################
-# Tests
-################################################################################
-
-test: $(TEST_BINARIES)
-	@TESTS='$(TESTS)' bash ./tests/runtests.sh
-
-build/tests:
-	mkdir -p $@
-
-#$(TEST_BINARIES): %: %.c build/tests build/libbetree.so
-$(TEST_BINARIES): build/tests/%: tests/%.c build/libbetree.a | build/tests
-	$(CC) $(CFLAGS) -Isrc -o $@ $< build/libbetree.a $(LDFLAGS_TESTS)
-
 clean:
-	$(RM) $(OBJECTS)
-	$(RM) -rf build
+	$(RM) $(GENERATED)
 
 realclean: clean
-	$(RM) $(INTERMEDIATES)
 
-valgrind: $(TEST_BINARIES)
-	$(VALGRIND) build/tests/betree_tests
-	$(VALGRIND) build/tests/bound_tests
-	$(VALGRIND) build/tests/change_boundaries_tests
-	$(VALGRIND) build/tests/eq_expr_tests
-	$(VALGRIND) build/tests/event_parser_tests
-	$(VALGRIND) build/tests/memoize_tests
-	$(VALGRIND) build/tests/parser_tests
-	$(VALGRIND) build/tests/performance_tests
-	$(VALGRIND) build/tests/printer_tests
-	$(VALGRIND) build/tests/report_tests
-	$(VALGRIND) build/tests/special_tests
-	$(VALGRIND) build/tests/valid_tests
-	$(VALGRIND) build/tests/betree_search_cb_tests
-	#$(VALGRIND) build/tests/real_tests 1
-
-callgrind:
-	$(CALLGRIND) build/tests/real_tests 1
-
-cachegrind:
-	$(CACHEGRIND) build/tests/real_tests 1
-
-massif:
-	$(MASSIF) build/tests/real_tests 1
-
-tidy:
-	#$(TIDY) src/alloc.c -checks='*' -- -Isrc
-	#$(TIDY) src/ast.c -checks='*' -- -Isrc
-	#$(TIDY) src/ast_compare.c -checks='*' -- -Isrc
-	#$(TIDY) src/betree.c -checks='*' -- -Isrc
-	#$(TIDY) src/config.c -checks='*' -- -Isrc
-	#$(TIDY) src/debug.c -checks='*' -- -Isrc
-	#$(TIDY) src/hashmap.c -checks='*' -- -Isrc
-	#$(TIDY) src/helper.c -checks='*' -- -Isrc
-	#$(TIDY) src/jsw_rbtree.c -checks='*' -- -Isrc
-	#$(TIDY) src/map.c -checks='*' -- -Isrc
-	#$(TIDY) src/memoize.c -checks='*' -- -Isrc
-	#$(TIDY) src/printer.c -checks='*' -- -Isrc
-	#$(TIDY) src/special.c -checks='*' -- -Isrc
-	#$(TIDY) src/tree.c -checks='*' -- -Isrc
-	#$(TIDY) src/utils.c -checks='*' -- -Isrc
-	#$(TIDY) src/value.c -checks='*' -- -Isrc
-	#$(TIDY) src/var.c -checks='*' -- -Isrc
-
-build-test-benchmark: build/libbetree.a
-	gcc -o testbenchmark tests/real_tests.c -Isrc -I/usr/include -I/usr/local/include  build/libbetree.a  $(LDFLAGS_TESTS)
-	gcc -o testbenchmark_err tests/real_tests_err.c -Isrc -I/usr/include -I/usr/local/include  build/libbetree.a  $(LDFLAGS_TESTS)
-
-.PHONY: gen dev clean realclean test valgrind
+.PHONY: help all dev test valgrind build-test-benchmark clean realclean

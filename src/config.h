@@ -36,10 +36,8 @@ struct string_map {
 
 struct integer_map {
     struct attr_var attr_var;
-    struct {
-        size_t integer_value_count;
-        int64_t* integer_values;
-    };
+    size_t integer_value_count;
+    int64_t* integer_values;
 };
 
 struct config* make_config(uint8_t lnode_max_cap, uint8_t partition_min_size);
@@ -50,18 +48,12 @@ struct config {
     uint8_t lnode_max_cap;
     uint8_t partition_min_size;
     uint32_t max_domain_for_split;
-    struct {
-        size_t attr_domain_count;
-        struct attr_domain** attr_domains;
-    };
-    struct {
-        size_t string_map_count;
-        struct string_map* string_maps;
-    };
-    struct {
-        size_t integer_map_count;
-        struct integer_map* integer_maps;
-    };
+    size_t attr_domain_count;
+    struct attr_domain** attr_domains;
+    size_t string_map_count;
+    struct string_map* string_maps;
+    size_t integer_map_count;
+    struct integer_map* integer_maps;
     struct pred_map* pred_map;
 };
 

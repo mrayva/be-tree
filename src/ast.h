@@ -31,10 +31,8 @@ enum ast_compare_value_e {
 
 struct compare_value {
     enum ast_compare_value_e value_type;
-    union {
-        int64_t integer_value;
-        double float_value;
-    };
+    int64_t integer_value;
+    double float_value;
 };
 
 struct ast_compare_expr {
@@ -60,12 +58,10 @@ enum ast_equality_value_e {
 
 struct equality_value {
     enum ast_equality_value_e value_type;
-    union {
-        int64_t integer_value;
-        double float_value;
-        struct string_value string_value;
-        struct integer_enum_value integer_enum_value;
-    };
+    int64_t integer_value;
+    double float_value;
+    struct string_value string_value;
+    struct integer_enum_value integer_enum_value;
 };
 
 struct ast_equality_expr {
@@ -100,12 +96,10 @@ struct ast_bool_unary {
 
 struct ast_bool_expr {
     enum ast_bool_e op;
-    union {
-        struct ast_bool_binary binary;
-        struct ast_bool_unary unary;
-        struct attr_var variable;
-        bool literal;
-    };
+    struct ast_bool_binary binary;
+    struct ast_bool_unary unary;
+    struct attr_var variable;
+    bool literal;
 };
 
 // Set ('in'/'not in')
@@ -120,11 +114,9 @@ enum set_left_value_e {
 
 struct set_left_value {
     enum set_left_value_e value_type;
-    union {
-        int64_t integer_value;
-        struct string_value string_value;
-        struct attr_var variable_value;
-    };
+    int64_t integer_value;
+    struct string_value string_value;
+    struct attr_var variable_value;
 };
 
 enum set_right_value_e {
@@ -135,11 +127,9 @@ enum set_right_value_e {
 
 struct set_right_value {
     enum set_right_value_e value_type;
-    union {
-        struct betree_integer_list* integer_list_value;
-        struct betree_string_list* string_list_value;
-        struct attr_var variable_value;
-    };
+    struct betree_integer_list* integer_list_value;
+    struct betree_string_list* string_list_value;
+    struct attr_var variable_value;
 };
 
 enum ast_set_e {
@@ -168,10 +158,8 @@ enum ast_list_value_e {
 
 struct list_value {
     enum ast_list_value_e value_type;
-    union {
-        struct betree_integer_list* integer_list_value;
-        struct betree_string_list* string_list_value;
-    };
+    struct betree_integer_list* integer_list_value;
+    struct betree_string_list* string_list_value;
 };
 
 struct ast_list_expr {
@@ -246,12 +234,10 @@ enum ast_special_e {
 
 struct ast_special_expr {
     enum ast_special_e type;
-    union {
-        struct ast_special_frequency frequency;
-        struct ast_special_segment segment;
-        struct ast_special_geo geo;
-        struct ast_special_string string;
-    };
+    struct ast_special_frequency frequency;
+    struct ast_special_segment segment;
+    struct ast_special_geo geo;
+    struct ast_special_string string;
 };
 
 // Is null
@@ -283,15 +269,13 @@ struct ast_node {
     betree_pred_t global_id;
     betree_pred_t memoize_id;
     enum ast_node_type_e type;
-    union {
-        struct ast_compare_expr compare_expr;
-        struct ast_equality_expr equality_expr;
-        struct ast_bool_expr bool_expr;
-        struct ast_set_expr set_expr;
-        struct ast_list_expr list_expr;
-        struct ast_special_expr special_expr;
-        struct ast_is_null_expr is_null_expr;
-    };
+    struct ast_compare_expr compare_expr;
+    struct ast_equality_expr equality_expr;
+    struct ast_bool_expr bool_expr;
+    struct ast_set_expr set_expr;
+    struct ast_list_expr list_expr;
+    struct ast_special_expr special_expr;
+    struct ast_is_null_expr is_null_expr;
 };
 
 struct ast_node* ast_node_create();

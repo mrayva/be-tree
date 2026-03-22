@@ -392,6 +392,55 @@ int test_frequency()
     return 0;
 }
 
+int test_empty_list_typed_preservation()
+{
+    struct betree_event* event;
+    event_parse("{\"empty\": []}", &event);
+
+    mu_assert(event->variable_count == 1, "single empty list");
+    const struct betree_variable* pred = event->variables[0];
+    mu_assert(strcmp(pred->attr_var.attr, "empty") == 0, "attr");
+    mu_assert(pred->value.value_type == BETREE_INTEGER_LIST, "canonical empty-list type");
+    mu_assert(is_empty_list(pred->value), "empty list");
+    mu_assert(pred->value.integer_list_value != NULL
+            && pred->value.integer_list_value->count == 0,
+        "integer-list slot");
+    mu_assert(pred->value.string_list_value != NULL
+            && pred->value.string_list_value->count == 0,
+        "string-list slot");
+    mu_assert(pred->value.segments_value != NULL
+            && pred->value.segments_value->size == 0,
+        "segments slot");
+    mu_assert(pred->value.frequency_caps_value != NULL
+            && pred->value.frequency_caps_value->size == 0,
+        "frequency slot");
+
+    free_event(event);
+    return 0;
+}
+
+int test_invalid_payloads()
+{
+    struct betree_event* event = NULL;
+
+    mu_assert(event_parse("{\"mixed\": [1, \"2\"]}", &event) != 0, "mixed list types");
+    mu_assert(event == NULL, "no event on mixed list types");
+
+    event = NULL;
+    mu_assert(event_parse("{\"seg\": [[1]]}", &event) != 0, "short segment tuple");
+    mu_assert(event == NULL, "no event on short segment tuple");
+
+    event = NULL;
+    mu_assert(event_parse("{\"freq\": [[\"flight\",1,\"ns\",2]]}", &event) != 0, "short frequency tuple");
+    mu_assert(event == NULL, "no event on short frequency tuple");
+
+    event = NULL;
+    mu_assert(event_parse("{\"a\": 1,}", &event) != 0, "trailing comma");
+    mu_assert(event == NULL, "no event on trailing comma");
+
+    return 0;
+}
+
 int test_null()
 {
     struct betree_event* event;
@@ -426,6 +475,8 @@ int all_tests()
     mu_run_test(test_string_list);
     mu_run_test(test_segment);
     mu_run_test(test_frequency);
+    mu_run_test(test_empty_list_typed_preservation);
+    mu_run_test(test_invalid_payloads);
     mu_run_test(test_null);
     return 0;
 }

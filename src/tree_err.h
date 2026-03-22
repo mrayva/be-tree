@@ -18,10 +18,8 @@ struct cnode_err;
 
 struct lnode_err {
     struct cnode_err* parent;
-    struct {
-        size_t sub_count;
-        struct betree_sub** subs;
-    };
+    size_t sub_count;
+    struct betree_sub** subs;
     size_t max;
 };
 
@@ -44,10 +42,8 @@ struct pnode_err {
 
 struct cdir_err {
     enum c_parent_e parent_type;
-    union {
-        struct pnode_err* pnode_parent;
-        struct cdir_err* cdir_parent;
-    };
+    struct pnode_err* pnode_parent;
+    struct cdir_err* cdir_parent;
     struct attr_var attr_var;
     struct value_bound bound;
     struct cnode_err* cnode;
@@ -58,10 +54,8 @@ struct cdir_err {
 
 struct pdir_err {
     struct cnode_err* parent;
-    struct {
-        size_t pnode_count;
-        struct pnode_err** pnodes;
-    };
+    size_t pnode_count;
+    struct pnode_err** pnodes;
 };
 
 #ifdef __cplusplus

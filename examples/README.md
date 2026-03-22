@@ -16,12 +16,12 @@ A complete example showing the C API:
 
 **Compile:**
 ```bash
-gcc -o basic_usage basic_usage.c -I../src -L../build/lib -lbetree -lm
+gcc -o basic_usage basic_usage.c -I../src -L../build/cmake/lib -lbetree -lm
 ```
 
 **Run:**
 ```bash
-LD_LIBRARY_PATH=../build/lib ./basic_usage
+LD_LIBRARY_PATH=../build/cmake/lib ./basic_usage
 ```
 
 ### 2. `cpp_usage.cpp` - Modern C++ Example (Inline Wrapper)
@@ -36,12 +36,12 @@ A modern C++20 example featuring an inline wrapper class:
 
 **Compile:**
 ```bash
-g++ -std=c++20 -o cpp_usage cpp_usage.cpp -I../src -L../build/lib -lbetree -lm
+g++ -std=c++20 -o cpp_usage cpp_usage.cpp -I../src -L../build/cmake/lib -lbetree -lm
 ```
 
 **Run:**
 ```bash
-LD_LIBRARY_PATH=../build/lib ./cpp_usage
+LD_LIBRARY_PATH=../build/cmake/lib ./cpp_usage
 ```
 
 ### 3. `cpp_modern.cpp` - Production C++ API Example
@@ -51,18 +51,18 @@ Demonstrates the production-quality `betree_cpp.hpp` wrapper API:
 - Full RAII-based resource management
 - Exception-safe with custom `be::BetreeException`
 - Method chaining for all schema operations
-- `std::string_view` for zero-copy string parameters
+- `std::string_view` convenience at the wrapper API boundary
 - `be::SearchResult` with STL containers
 - Comprehensive API coverage
 
 **Compile:**
 ```bash
-g++ -std=c++20 -o cpp_modern cpp_modern.cpp -I../src -I../include -L../build/lib -lbetree -lm
+g++ -std=c++20 -o cpp_modern cpp_modern.cpp -I../src -I../include -L../build/cmake/lib -lbetree -lm
 ```
 
 **Run:**
 ```bash
-LD_LIBRARY_PATH=../build/lib ./cpp_modern
+LD_LIBRARY_PATH=../build/cmake/lib ./cpp_modern
 ```
 
 ## Building with CMake
@@ -77,9 +77,9 @@ make examples
 
 Then run:
 ```bash
-./examples/basic_usage    # C API
-./examples/cpp_usage      # C++ inline wrapper
-./examples/cpp_modern     # C++ production API
+./cmake/examples/basic_usage    # C API
+./cmake/examples/cpp_usage      # C++ inline wrapper
+./cmake/examples/cpp_modern     # C++ production API
 ```
 
 ## What These Examples Demonstrate
@@ -175,7 +175,7 @@ Features:
 - **RAII:** Automatic resource management with `be::Tree`
 - **Exceptions:** `be::BetreeException` for error handling
 - **Results:** `be::SearchResult` with `std::vector<uint64_t>`
-- **Zero-copy:** Uses `std::string_view` for parameters
+- **Safe wrapper boundary:** Accepts `std::string_view` and materializes safe C strings when calling the C API
 - **Method chaining:** Fluent API for schema definition
 - **Type safety:** Strong typing with C++20
 

@@ -103,7 +103,7 @@ At the end of this, we return a report with all the subscriptions id found to be
 
 ## Non-Matches last reason
 
-While matching, we track the last reason (variable name) on a expression basis. It is accomplished by `_err` postfix function which returns a report containing all last reasons corresponding to eliminated ids.
+While matching, we track the last reason (variable name) on an expression basis. The `_err` API variants return a report containing the last reasons corresponding to eliminated ids.
 
 ## Possible changes
 * For cdir splitting, there was a bug in the original implementation. I went with searching both lchild AND rchild but we could go with middle + 1.
@@ -141,11 +141,15 @@ export LD_LIBRARY_PATH="/usr/local/lib/"
 ```
 
 ### Build test benchmark binary for execution
-* Run `make build-test-benchmark` for building the test binary
+* Configure and build with CMake:
+
+```bash
+cmake -S . -B build
+cmake --build build -j4 --target testbenchmark testbenchmark_err
+```
 
 ### Input for test benchmark binary
 * Test binary dependency on 4 files which are in the data folder refer README.md file inside the `data` folder for more information about each file and format
 
 ### How to run the test
-* Once you have constructed all the test files inside the data folder run `./testbenchmark` or `./testbenchmark_err` to run a test. It would create a be-tree and query it. The default number of times it would query would be 10. If you want to modify then you need to pass a command line argument. For running 1-time command is `./testbenchmark 1` or `./testbenchmark_err 1`
-
+* Once you have constructed all the test files inside the data folder run `./build/cmake/bin/testbenchmark` or `./build/cmake/bin/testbenchmark_err` to run a test. It would create a be-tree and query it. The default number of times it would query would be 10. If you want to modify then you need to pass a command line argument. For running 1-time command is `./build/cmake/bin/testbenchmark 1` or `./build/cmake/bin/testbenchmark_err 1`

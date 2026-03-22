@@ -107,7 +107,27 @@ value               : boolean                               { $$.value_type = BE
                     | integer                               { $$.value_type = BETREE_INTEGER; $$.integer_value = $1; }
                     | float                                 { $$.value_type = BETREE_FLOAT; $$.float_value = $1; }
                     | string                                { $$.value_type = BETREE_STRING; $$.string_value = $1; }
-                    | empty_list_value                      { $$.value_type = BETREE_INTEGER_LIST; $$.integer_list_value = $1; }
+                    | empty_list_value                      {
+                                                                /*
+                                                                 * Empty [] stays polymorphic on purpose.
+                                                                 *
+                                                                 * The parser uses BETREE_INTEGER_LIST as the canonical
+                                                                 * tag for [] but also stamps the same zero-sized
+                                                                 * allocation into the other list-capable slots. Later
+                                                                 * code relies on this so expressions like "var is empty"
+                                                                 * keep working across integer lists, string lists,
+                                                                 * segments, and frequency caps even though the event
+                                                                 * syntax for [] is untyped.
+                                                                 *
+                                                                 * See tests/event_parser_tests.c:
+                                                                 * test_empty_list_typed_preservation.
+                                                                 */
+                                                                $$.value_type = BETREE_INTEGER_LIST;
+                                                                $$.integer_list_value = $1;
+                                                                $$.string_list_value = (struct betree_string_list*)$1;
+                                                                $$.segments_value = (struct betree_segments*)$1;
+                                                                $$.frequency_caps_value = (struct betree_frequency_caps*)$1;
+                                                            }
                     | integer_list_value                    { $$.value_type = BETREE_INTEGER_LIST; $$.integer_list_value = $1; }
                     | string_list_value                     { $$.value_type = BETREE_STRING_LIST; $$.string_list_value = $1; }
                     | segments_value                        { $$.value_type = BETREE_SEGMENTS; $$.segments_value = $1; }

@@ -17,6 +17,9 @@
 #include "memoize.h"
 #include "printer.h"
 #include "tree.h"
+#include "tree_eval_shared.hpp"
+#include "tree_match_shared.hpp"
+#include "tree_traversal_shared.hpp"
 #include "utils.h"
 
 // Forward declarations for functions from other C modules
@@ -33,8 +36,6 @@ static void search_cdir_ids(const struct attr_domain** attr_domains,
     bool open_right,
     const std::uint64_t* ids,
     std::size_t sz);
-
-static bool is_id_in(std::uint64_t id, const std::uint64_t* ids, std::size_t sz);
 
 extern "C" {
 
@@ -54,56 +55,6 @@ void init_subs_to_eval_ext(struct subs_to_eval* subs, std::size_t init)
 }
 
 } // extern "C"
-
-static void add_sub_to_eval(struct betree_sub* sub, struct subs_to_eval* subs)
-{
-    if(subs->capacity == subs->count) {
-        subs->capacity *= 2;
-        subs->subs = static_cast<struct betree_sub**>(brealloc(subs->subs, sizeof(struct betree_sub*) * subs->capacity));
-    }
-
-    subs->subs[subs->count] = sub;
-    subs->count++;
-}
-
-enum short_circuit_e { SHORT_CIRCUIT_PASS, SHORT_CIRCUIT_FAIL, SHORT_CIRCUIT_NONE };
-
-static enum short_circuit_e try_short_circuit(
-    std::size_t attr_domains_count, const struct short_circuit* short_circuit, const std::uint64_t* undefined)
-{
-    std::size_t count = attr_domains_count / 64 + 1;
-    for(std::size_t i = 0; i < count; i++) {
-        bool pass = short_circuit->pass[i] & undefined[i];
-        if(pass) {
-            return SHORT_CIRCUIT_PASS;
-        }
-        bool fail = short_circuit->fail[i] & undefined[i];
-        if(fail) {
-            return SHORT_CIRCUIT_FAIL;
-        }
-    }
-    return SHORT_CIRCUIT_NONE;
-}
-
-static enum short_circuit_e try_short_circuit_(
-    std::size_t attr_domains_count, const struct short_circuit* short_circuit,
-    const std::uint64_t* undefined, betree_var_t *last_var)
-{
-    std::size_t count = attr_domains_count / 64 + 1;
-    for(std::size_t i = 0; i < count; i++) {
-        std::uint64_t pass_mask = short_circuit->pass[i] & undefined[i];
-        if(pass_mask) {
-            *last_var = __builtin_ctzll(pass_mask);
-            return SHORT_CIRCUIT_PASS;
-        }
-        std::uint64_t fail_mask = short_circuit->fail[i] & undefined[i];
-        if(fail_mask) {
-            *last_var = __builtin_ctzll(fail_mask);
-            return SHORT_CIRCUIT_FAIL;
-        }
-    }
-    return SHORT_CIRCUIT_NONE;
-}
 
 extern "C" {
 
@@ -240,11 +191,6 @@ static void search_cdir_node_counting(const struct attr_domain** attr_domains,
     bool open_right,
     int* node_count);
 
-static bool event_contains_variable(const struct betree_variable** preds, betree_var_t variable_id)
-{
-    return preds[variable_id] != nullptr;
-}
-
 extern "C" {
 
 void match_be_tree(const struct config* config,
@@ -254,17 +200,8 @@ void match_be_tree(const struct config* config,
     struct report* report)
 {
     check_sub(cnode->lnode, subs);
-    if(cnode->pdir != nullptr) {
-        for(std::size_t i = 0; i < cnode->pdir->pnode_count; i++) {
-            struct pnode* pnode = cnode->pdir->pnodes[i];
-            const struct attr_domain* attr_domain = get_attr_domain(
-                (const struct attr_domain **)config->attr_domains, pnode->attr_var.var);
-            if(attr_domain->allow_undefined
-                || event_contains_variable(preds, pnode->attr_var.var)) {
-                search_cdir(config, preds, pnode->cdir, subs, true, true, report);
-            }
-        }
-    }
+    traverse_pdir_shared((const struct attr_domain**)config->attr_domains, preds, cnode->pdir,
+        [&](struct pnode* pnode) { search_cdir(config, preds, pnode->cdir, subs, true, true, report); });
 }
 
 } // extern "C"
@@ -277,17 +214,9 @@ static void match_be_tree_ids(const struct attr_domain** attr_domains,
     std::size_t sz)
 {
     check_sub_ids(cnode->lnode, subs, ids, sz);
-    if(cnode->pdir != nullptr) {
-        for(std::size_t i = 0; i < cnode->pdir->pnode_count; i++) {
-            struct pnode* pnode = cnode->pdir->pnodes[i];
-            const struct attr_domain* attr_domain
-                = get_attr_domain(attr_domains, pnode->attr_var.var);
-            if(attr_domain->allow_undefined
-                || event_contains_variable(preds, pnode->attr_var.var)) {
-                search_cdir_ids(attr_domains, preds, pnode->cdir, subs, true, true, ids, sz);
-            }
-        }
-    }
+    traverse_pdir_shared(attr_domains, preds, cnode->pdir, [&](struct pnode* pnode) {
+        search_cdir_ids(attr_domains, preds, pnode->cdir, subs, true, true, ids, sz);
+    });
 }
 
 extern "C" {
@@ -299,84 +228,16 @@ void match_be_tree_node_counting(const struct attr_domain** attr_domains,
     int* node_count)
 {
     check_sub_node_counting(cnode->lnode, subs, node_count);
+    traverse_pdir_shared(attr_domains, preds, cnode->pdir, [&](struct pnode* pnode) {
+        search_cdir_node_counting(attr_domains, preds, pnode->cdir, subs, true, true, node_count);
+        ++*node_count;
+    });
     if(cnode->pdir != nullptr) {
-        for(std::size_t i = 0; i < cnode->pdir->pnode_count; i++) {
-            struct pnode* pnode = cnode->pdir->pnodes[i];
-            const struct attr_domain* attr_domain
-                = get_attr_domain(attr_domains, pnode->attr_var.var);
-            if(attr_domain->allow_undefined
-                || event_contains_variable(preds, pnode->attr_var.var)) {
-                search_cdir_node_counting(
-                    attr_domains, preds, pnode->cdir, subs, true, true, node_count);
-            }
-            ++*node_count;
-        }
         ++*node_count;
     }
 }
 
 } // extern "C"
-
-static bool is_event_enclosed(
-    const struct betree_variable** preds, const struct cdir* cdir, bool open_left, bool open_right)
-{
-    if(cdir == nullptr) {
-        return false;
-    }
-    const struct betree_variable* pred = preds[cdir->attr_var.var];
-    if(pred == nullptr) {
-        return true;
-    }
-    // No open_left for smin because it's always 0
-    switch(pred->value.value_type) {
-        case BETREE_BOOLEAN:
-            return (cdir->bound.bmin <= pred->value.boolean_value)
-                && (cdir->bound.bmax >= pred->value.boolean_value);
-        case BETREE_INTEGER:
-            return (open_left || cdir->bound.imin <= pred->value.integer_value)
-                && (open_right || cdir->bound.imax >= pred->value.integer_value);
-        case BETREE_FLOAT:
-            return (open_left || cdir->bound.fmin <= pred->value.float_value)
-                && (open_right || cdir->bound.fmax >= pred->value.float_value);
-        case BETREE_STRING:
-            return (cdir->bound.smin <= pred->value.string_value.str)
-                && (open_right || cdir->bound.smax >= pred->value.string_value.str);
-        case BETREE_INTEGER_ENUM:
-            return (cdir->bound.smin <= pred->value.integer_enum_value.ienum)
-                && (open_right || cdir->bound.smax >= pred->value.integer_enum_value.ienum);
-        case BETREE_INTEGER_LIST:
-            if(pred->value.integer_list_value->count != 0) {
-                std::int64_t min = pred->value.integer_list_value->integers[0];
-                std::int64_t max = pred->value.integer_list_value
-                                  ->integers[pred->value.integer_list_value->count - 1];
-                std::int64_t bound_min = open_left ? INT64_MIN : cdir->bound.imin;
-                std::int64_t bound_max = open_right ? INT64_MAX : cdir->bound.imax;
-                return min <= bound_max && bound_min <= max;
-            }
-            else {
-                return true;
-            }
-        case BETREE_STRING_LIST:
-            if(pred->value.string_list_value->count != 0) {
-                std::size_t min = pred->value.string_list_value->strings[0].str;
-                std::size_t max = pred->value.string_list_value
-                                 ->strings[pred->value.string_list_value->count - 1]
-                                 .str;
-                std::size_t bound_min = cdir->bound.smin;
-                std::size_t bound_max = open_right ? SIZE_MAX : cdir->bound.smax;
-                return min <= bound_max && bound_min <= max;
-            }
-            else {
-                return true;
-            }
-        case BETREE_SEGMENTS:
-        case BETREE_FREQUENCY_CAPS:
-            return true;
-        default:
-            std::abort();
-    }
-    return false;
-}
 
 extern "C" {
 
@@ -436,16 +297,15 @@ static void search_cdir(const struct config* config,
     struct report* report)
 {
     match_be_tree(config, preds, cdir->cnode, subs, report);
-
-    if (is_event_enclosed(preds, cdir->lchild, open_left, false))
-        search_cdir(config, preds, cdir->lchild, subs, open_left, false, report);
-    else
-        exclude_cdir(cdir->lchild, report);
-
-    if (is_event_enclosed(preds, cdir->rchild, false, open_right))
-        search_cdir(config, preds, cdir->rchild, subs, false, open_right, report);
-    else
-        exclude_cdir(cdir->rchild, report);
+    traverse_cdir_children_shared(
+        preds,
+        cdir,
+        open_left,
+        open_right,
+        [&](struct cdir* child, bool child_open_left, bool child_open_right) {
+            search_cdir(config, preds, child, subs, child_open_left, child_open_right, report);
+        },
+        [&](struct cdir* child) { exclude_cdir(child, report); });
 }
 
 static void search_cdir_ids(const struct attr_domain** attr_domains,
@@ -458,12 +318,16 @@ static void search_cdir_ids(const struct attr_domain** attr_domains,
     std::size_t sz)
 {
     match_be_tree_ids(attr_domains, preds, cdir->cnode, subs, ids, sz);
-    if(is_event_enclosed(preds, cdir->lchild, open_left, false)) {
-        search_cdir_ids(attr_domains, preds, cdir->lchild, subs, open_left, false, ids, sz);
-    }
-    if(is_event_enclosed(preds, cdir->rchild, false, open_right)) {
-        search_cdir_ids(attr_domains, preds, cdir->rchild, subs, false, open_right, ids, sz);
-    }
+    traverse_cdir_children_shared(
+        preds,
+        cdir,
+        open_left,
+        open_right,
+        [&](struct cdir* child, bool child_open_left, bool child_open_right) {
+            search_cdir_ids(
+                attr_domains, preds, child, subs, child_open_left, child_open_right, ids, sz);
+        },
+        [](struct cdir*) {});
 }
 
 static void search_cdir_node_counting(const struct attr_domain** attr_domains,
@@ -475,14 +339,16 @@ static void search_cdir_node_counting(const struct attr_domain** attr_domains,
     int* node_count)
 {
     match_be_tree_node_counting(attr_domains, preds, cdir->cnode, subs, node_count);
-    if(is_event_enclosed(preds, cdir->lchild, open_left, false)) {
-        search_cdir_node_counting(
-            attr_domains, preds, cdir->lchild, subs, open_left, false, node_count);
-    }
-    if(is_event_enclosed(preds, cdir->rchild, false, open_right)) {
-        search_cdir_node_counting(
-            attr_domains, preds, cdir->rchild, subs, false, open_right, node_count);
-    }
+    traverse_cdir_children_shared(
+        preds,
+        cdir,
+        open_left,
+        open_right,
+        [&](struct cdir* child, bool child_open_left, bool child_open_right) {
+            search_cdir_node_counting(
+                attr_domains, preds, child, subs, child_open_left, child_open_right, node_count);
+        },
+        [](struct cdir*) {});
 }
 
 static bool is_used_cnode(betree_var_t variable_id, const struct cnode* cnode);
@@ -1165,8 +1031,10 @@ struct value_bounds {
 
 static struct value_bounds split_value_bound(struct value_bound bound)
 {
-    struct value_bound lbound = { .value_type = bound.value_type };
-    struct value_bound rbound = { .value_type = bound.value_type };
+    struct value_bound lbound = {};
+    struct value_bound rbound = {};
+    lbound.value_type = bound.value_type;
+    rbound.value_type = bound.value_type;
     switch(bound.value_type) {
         case(BETREE_INTEGER):
         case(BETREE_INTEGER_LIST): {
@@ -1904,44 +1772,12 @@ std::uint64_t* make_undefined_with_count(
 
 void add_sub(betree_sub_t id, struct report* report)
 {
-    if(report->matched == 0) {
-        report->subs = static_cast<betree_sub_t*>(bcalloc(sizeof(betree_sub_t)));
-        if(report->subs == nullptr) {
-            std::fprintf(stderr, "%s bcalloc failed", __func__);
-            std::abort();
-        }
-    }
-    else {
-        auto subs = static_cast<betree_sub_t*>(brealloc(report->subs, sizeof(betree_sub_t) * (report->matched + 1)));
-        if(subs == nullptr) {
-            std::fprintf(stderr, "%s brealloc failed", __func__);
-            std::abort();
-        }
-        report->subs = subs;
-    }
-    report->subs[report->matched] = id;
-    report->matched++;
+    append_report_sub_id(id, report);
 }
 
 void add_sub_counting(betree_sub_t id, struct report_counting* report)
 {
-    if(report->matched == 0) {
-        report->subs = static_cast<betree_sub_t*>(bcalloc(sizeof(betree_sub_t)));
-        if(report->subs == nullptr) {
-            std::fprintf(stderr, "%s bcalloc failed", __func__);
-            std::abort();
-        }
-    }
-    else {
-        auto subs = static_cast<betree_sub_t*>(brealloc(report->subs, sizeof(betree_sub_t) * (report->matched + 1)));
-        if(subs == nullptr) {
-            std::fprintf(stderr, "%s brealloc failed", __func__);
-            std::abort();
-        }
-        report->subs = subs;
-    }
-    report->subs[report->matched] = id;
-    report->matched++;
+    append_report_sub_id(id, report);
 }
 
 bool betree_search_with_preds(const struct config* config,
@@ -1957,21 +1793,28 @@ bool betree_search_with_preds(const struct config* config,
     match_be_tree(config, preds, cnode, &subs, report);
     if (report->cb != nullptr) {
         void* arg = report->arg;
-        for(std::size_t i = 0; i < subs.count; i++) {
-            const struct betree_sub* sub = subs.subs[i];
-            report->evaluated++;
-            bool result = match_sub_(dom_cnt, preds, sub, report, &memoize, undefined);
-            (*report->cb)(arg, sub->data, result, (void*)report->last_var);
-        }
+        evaluate_subs_shared(
+            subs,
+            report,
+            [&](const struct betree_sub* sub) {
+                return match_sub_(dom_cnt, preds, sub, report, &memoize, undefined);
+            },
+            [&](const struct betree_sub* sub, bool) {
+                (*report->cb)(arg, sub->data, true, (void*)report->last_var);
+            },
+            [&](const struct betree_sub* sub, bool) {
+                (*report->cb)(arg, sub->data, false, (void*)report->last_var);
+            });
     }
     else {
-        for(std::size_t i = 0; i < subs.count; i++) {
-            const struct betree_sub* sub = subs.subs[i];
-            report->evaluated++;
-            if(match_sub(dom_cnt, preds, sub, report, &memoize, undefined) == true) {
-                add_sub(sub->id, report);
-            }
-        }
+        evaluate_subs_shared(
+            subs,
+            report,
+            [&](const struct betree_sub* sub) {
+                return match_sub(dom_cnt, preds, sub, report, &memoize, undefined);
+            },
+            [&](const struct betree_sub* sub, bool) { add_sub(sub->id, report); },
+            [](const struct betree_sub*, bool) {});
     }
     bfree(subs.subs);
     free_memoize(memoize);
@@ -1981,32 +1824,6 @@ bool betree_search_with_preds(const struct config* config,
 }
 
 } // extern "C"
-
-static bool is_id_in(std::uint64_t id, const std::uint64_t* ids, std::size_t sz)
-{
-    if(sz == 0) {
-        return false;
-    }
-    std::size_t first = 0;
-    std::size_t last = sz - 1;
-    if(id < ids[first] || id > ids[last]) {
-        return false;
-    }
-    std::size_t middle = (first + last) / 2;
-    while(first <= last) {
-        if(id == ids[middle]) {
-            return true;
-        }
-        if(ids[middle] < id) {
-            first = middle + 1;
-        }
-        else {
-            last = middle - 1;
-        }
-        middle = (first + last) / 2;
-    }
-    return false;
-}
 
 extern "C" {
 
@@ -2023,13 +1840,14 @@ bool betree_search_with_preds_ids(const struct config* config,
     init_subs_to_eval(&subs);
     match_be_tree_ids(
         (const struct attr_domain**)config->attr_domains, preds, cnode, &subs, ids, sz);
-    for(std::size_t i = 0; i < subs.count; i++) {
-        const struct betree_sub* sub = subs.subs[i];
-        report->evaluated++;
-        if(match_sub(config->attr_domain_count, preds, sub, report, &memoize, undefined) == true) {
-            add_sub(sub->id, report);
-        }
-    }
+    evaluate_subs_shared(
+        subs,
+        report,
+        [&](const struct betree_sub* sub) {
+            return match_sub(config->attr_domain_count, preds, sub, report, &memoize, undefined);
+        },
+        [&](const struct betree_sub* sub, bool) { add_sub(sub->id, report); },
+        [](const struct betree_sub*, bool) {});
     bfree(subs.subs);
     free_memoize(memoize);
     bfree(undefined);
@@ -2112,7 +1930,9 @@ void free_attr_var(struct attr_var attr_var)
 
 struct attr_var copy_attr_var(struct attr_var attr_var)
 {
-    struct attr_var copy = { .attr = bstrdup(attr_var.attr), .var = attr_var.var };
+    struct attr_var copy = {};
+    copy.attr = bstrdup(attr_var.attr);
+    copy.var = attr_var.var;
     return copy;
 }
 
@@ -2168,6 +1988,7 @@ void fill_event(const struct config* config, struct betree_event* event)
             case BETREE_SEGMENTS:
                 break;
             case BETREE_INTEGER_ENUM: {
+                pred->value.integer_enum_value.integer = pred->value.integer_value;
                 betree_ienum_t ienum = try_get_id_for_ienum(
                     config, pred->attr_var, pred->value.integer_enum_value.integer);
                 pred->value.integer_enum_value.var = pred->attr_var.var;

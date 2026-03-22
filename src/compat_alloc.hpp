@@ -1,9 +1,8 @@
 #pragma once
 
-// C++ Compatibility Allocation Shim
-// This header provides C++-compatible wrapper functions for the allocation
-// helpers used in the original C codebase. When BUILD_AS_CPP is enabled,
-// these wrappers allow C code to be compiled as C++ with minimal changes.
+// C++ allocation bridge
+// This header provides C++ wrappers for the allocation helpers exposed by the C API.
+// It keeps allocation semantics consistent across the maintained C/C++ boundary.
 
 #ifdef __cplusplus
 
@@ -13,9 +12,8 @@
 
 extern "C" {
 
-// Allocation functions that match the original C API
-// These are implemented in compat_alloc.cpp and provide C++ implementations
-// using operator new/delete while maintaining C linkage for compatibility.
+// Allocation functions that match the C API.
+// These are implemented in compat_alloc.cpp and keep C linkage across the boundary.
 
 void* bmalloc_cpp(size_t size);
 void* bcalloc_cpp(size_t size);
@@ -25,8 +23,8 @@ char* bstrdup_cpp(const char* s1);
 
 } // extern "C"
 
-// When compiling as C++, redefine the allocation macros to use C++ implementations
-// Note: We use inline functions instead of macros to provide better type safety
+// When compiling as C++, redirect the allocation macros to the bridge functions.
+// Use inline functions rather than macros for basic type safety.
 #ifndef NIF
 
 #undef bmalloc
@@ -34,13 +32,11 @@ char* bstrdup_cpp(const char* s1);
 #undef brealloc
 #undef bfree
 
-// Use inline functions to preserve type safety in C++
 inline void* bmalloc(size_t size) { return bmalloc_cpp(size); }
 inline void* bcalloc(size_t size) { return bcalloc_cpp(size); }
 inline void* brealloc(void* ptr, size_t size) { return brealloc_cpp(ptr, size); }
 inline void bfree(void* ptr) { bfree_cpp(ptr); }
 
-// Override bstrdup as well for completeness
 #ifdef bstrdup
 #undef bstrdup
 #endif

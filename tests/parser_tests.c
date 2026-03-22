@@ -197,6 +197,28 @@ int test_string()
     return 0;
 }
 
+int test_invalid_expressions()
+{
+    struct ast_node* node = NULL;
+
+    mu_assert(parse("a and", &node) != 0, "dangling and");
+    mu_assert(node == NULL, "no node on dangling and");
+
+    node = NULL;
+    mu_assert(parse("(a = 1", &node) != 0, "unclosed paren");
+    mu_assert(node == NULL, "no node on unclosed paren");
+
+    node = NULL;
+    mu_assert(parse("a one of (1, \"2\")", &node) != 0, "mixed list types");
+    mu_assert(node == NULL, "no node on mixed list types");
+
+    node = NULL;
+    mu_assert(parse("contains(a, )", &node) != 0, "missing contains arg");
+    mu_assert(node == NULL, "no node on missing contains arg");
+
+    return 0;
+}
+
 int test_integer_set()
 {
     struct ast_node* node = NULL;
@@ -417,6 +439,7 @@ int all_tests()
     mu_run_test(test_float);
     mu_run_test(test_bool);
     mu_run_test(test_string);
+    mu_run_test(test_invalid_expressions);
     mu_run_test(test_integer_set);
     mu_run_test(test_string_set);
     mu_run_test(test_integer_list);

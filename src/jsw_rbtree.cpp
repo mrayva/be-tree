@@ -141,7 +141,7 @@ int jsw_rbinsert(struct jsw_rbtree* tree, void* data)
         }
     }
     else {
-        struct jsw_rbnode head = {0};
+        struct jsw_rbnode head = {};
         struct jsw_rbnode *g, *t;
         struct jsw_rbnode *p, *q;
         int dir = 0, last = 0;
@@ -202,7 +202,7 @@ int jsw_rbinsert(struct jsw_rbtree* tree, void* data)
 int jsw_rberase(struct jsw_rbtree* tree, void* data)
 {
     if (tree->root != nullptr) {
-        struct jsw_rbnode head = {0}; /* False tree root */
+        struct jsw_rbnode head = {}; /* False tree root */
         struct jsw_rbnode *q, *p, *g; /* Helpers */
         struct jsw_rbnode *f = nullptr;  /* Found item */
         int dir = 1;

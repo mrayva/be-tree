@@ -200,7 +200,7 @@ static void write_dot_file_lnode_names(
         name);
     if(lnode->sub_count > 0) {
         print_spaces(f, level);
-        std::fprintf(f, "\"%s_subs\" [label=<\\\{", name);
+        std::fprintf(f, "\"%s_subs\" [label=<\\{", name);
         for(std::size_t i = 0; i < lnode->sub_count; i++) {
             if(i != 0) {
                 if(i % 5 == 0) {
@@ -866,7 +866,7 @@ void write_dot_to_file(const struct betree* tree, const char* fname)
     wrt_dot_to_file(tree, f);
 }
 
-// legacy
+// Convenience wrapper for the default DOT output path.
 void write_dot_file(const struct betree* tree)
 {
     auto f = std::fopen("data/betree.dot", "we");

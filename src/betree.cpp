@@ -860,7 +860,9 @@ struct betree_constant* betree_make_integer_constant(const char* name, int64_t i
         std::abort();
     }
     constant->name = bstrdup(name);
-    struct value value = { .value_type = BETREE_INTEGER, .integer_value = integer_value };
+    struct value value = {};
+    value.value_type = BETREE_INTEGER;
+    value.integer_value = integer_value;
     constant->value = value;
     return constant;
 }
@@ -904,7 +906,8 @@ struct betree_string_list* betree_make_string_list(size_t count)
 
 void betree_add_string(struct betree_string_list* list, size_t index, const char* value)
 {
-    struct string_value s = { .string = bstrdup(value) };
+    struct string_value s = {};
+    s.string = bstrdup(value);
     list->strings[index] = s;
 }
 
@@ -975,54 +978,70 @@ extern "C" {
 
 struct betree_variable* betree_make_boolean_variable(const char* name, bool value)
 {
-    struct value v = { .value_type = BETREE_BOOLEAN, .boolean_value = value };
+    struct value v = {};
+    v.value_type = BETREE_BOOLEAN;
+    v.boolean_value = value;
     return betree_make_variable(name, v);
 }
 
 struct betree_variable* betree_make_integer_variable(const char* name, int64_t value)
 {
-    struct value v = { .value_type = BETREE_INTEGER, .integer_value = value };
+    struct value v = {};
+    v.value_type = BETREE_INTEGER;
+    v.integer_value = value;
     return betree_make_variable(name, v);
 }
 
 struct betree_variable* betree_make_float_variable(const char* name, double value)
 {
-    struct value v = { .value_type = BETREE_FLOAT, .float_value = value };
+    struct value v = {};
+    v.value_type = BETREE_FLOAT;
+    v.float_value = value;
     return betree_make_variable(name, v);
 }
 
 struct betree_variable* betree_make_string_variable(const char* name, const char* value)
 {
     struct string_value string_value = { .string = bstrdup(value), .var = INVALID_VAR, .str = INVALID_STR };
-    struct value v = { .value_type = BETREE_STRING, .string_value = string_value };
+    struct value v = {};
+    v.value_type = BETREE_STRING;
+    v.string_value = string_value;
     return betree_make_variable(name, v);
 }
 
 struct betree_variable* betree_make_integer_list_variable(
     const char* name, struct betree_integer_list* value)
 {
-    struct value v = { .value_type = BETREE_INTEGER_LIST, .integer_list_value = value };
+    struct value v = {};
+    v.value_type = BETREE_INTEGER_LIST;
+    v.integer_list_value = value;
     return betree_make_variable(name, v);
 }
 
 struct betree_variable* betree_make_string_list_variable(
     const char* name, struct betree_string_list* value)
 {
-    struct value v = { .value_type = BETREE_STRING_LIST, .string_list_value = value };
+    struct value v = {};
+    v.value_type = BETREE_STRING_LIST;
+    v.string_list_value = value;
     return betree_make_variable(name, v);
 }
 
 struct betree_variable* betree_make_segments_variable(
     const char* name, struct betree_segments* value)
 {
-    struct value v = { .value_type = BETREE_SEGMENTS, .segments_value = value };
+    struct value v = {};
+    v.value_type = BETREE_SEGMENTS;
+    v.segments_value = value;
     return betree_make_variable(name, v);
 }
 
 struct betree_variable* betree_make_frequency_caps_variable(
     const char* name, struct betree_frequency_caps* value)
 {
-    struct value v = { .value_type = BETREE_FREQUENCY_CAPS, .frequency_caps_value = value };
+    struct value v = {};
+    v.value_type = BETREE_FREQUENCY_CAPS;
+    v.frequency_caps_value = value;
     return betree_make_variable(name, v);
 }
 

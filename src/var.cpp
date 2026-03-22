@@ -115,12 +115,18 @@ bool get_frequency_var(
 
 bool is_empty_list(struct value value)
 {
-    return (value.value_type == BETREE_INTEGER_LIST || value.value_type == BETREE_STRING_LIST
-               || value.value_type == BETREE_SEGMENTS || value.value_type == BETREE_FREQUENCY_CAPS)
-        && value.integer_list_value->count == 0
-        && value.string_list_value->count == 0
-        && value.segments_value->size == 0
-        && value.frequency_caps_value->size == 0;
+    switch (value.value_type) {
+        case BETREE_INTEGER_LIST:
+            return value.integer_list_value != nullptr && value.integer_list_value->count == 0;
+        case BETREE_STRING_LIST:
+            return value.string_list_value != nullptr && value.string_list_value->count == 0;
+        case BETREE_SEGMENTS:
+            return value.segments_value != nullptr && value.segments_value->size == 0;
+        case BETREE_FREQUENCY_CAPS:
+            return value.frequency_caps_value != nullptr && value.frequency_caps_value->size == 0;
+        default:
+            return false;
+    }
 }
 
 } // extern "C"

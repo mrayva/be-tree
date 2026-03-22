@@ -34,27 +34,28 @@ This document describes how to build the be-tree library using the modern CMake 
 make src/lexer.c src/parser.c src/event_lexer.c src/event_parser.c
 ```
 
-### 2. Build with CMake (C++ mode - default)
+### 2. Build with CMake (default)
 ```bash
 # Create build directory
 mkdir build && cd build
 
-# Configure with C++ compilation enabled (default)
+# Configure with the default supported core
 cmake ..
 
 # Build
 cmake --build .
 
-# The library will be at: build/lib/libbetree.a
-# Test executables will be at: build/bin/testbenchmark and build/bin/testbenchmark_err
+# The library will be at: build/cmake/lib/libbetree.a
+# Library output: build/cmake/lib/libbetree.a
+# Test executables: build/cmake/bin/
 ```
 
-### 3. Build in C mode (legacy compatibility)
+### 3. Build with compatibility aliases
 ```bash
 mkdir build-c && cd build-c
 
-# Configure with C compilation
-cmake .. -DBUILD_AS_CPP=OFF
+# Configure with the canonical option
+cmake .. -DBUILD_CPP_CORE=OFF
 
 # Build
 cmake --build .
@@ -64,7 +65,7 @@ cmake --build .
 
 vcpkg is a cross-platform package manager that simplifies dependency management.
 
-The dependencies declared in `vcpkg.json` (fmt, ms-gsl, catch2) are currently not used by the C codebase. They are reserved for future C++ modules that will leverage modern C++ libraries. When converting modules to C++, these libraries will be available for use.
+The dependencies declared in `vcpkg.json` (fmt, ms-gsl, catch2) are currently optional. The supported core does not require them today, but the CMake build can link them when present.
 
 ### 1. Install vcpkg
 ```bash
@@ -135,27 +136,39 @@ cmake --build .
 
 ## Build Options
 
-### BUILD_AS_CPP (default: ON)
-Controls whether to compile library sources as C++ or C.
+### BUILD_CPP_CORE (default: ON)
+Controls whether to use the supported C++ core implementation. This is the
+canonical option name.
 
 ```bash
-# Build as C++ (default)
-cmake .. -DBUILD_AS_CPP=ON
+# Build with the supported C++ core (default)
+cmake .. -DBUILD_CPP_CORE=ON
 
-# Build as C (legacy mode)
+# Compatibility names still accepted for older scripts
+cmake .. -DBUILD_CONVERTED_CPP_CORE=ON
+cmake .. -DBUILD_AS_CPP=ON
+```
+
+```bash
+# Disable the canonical option
+cmake .. -DBUILD_CPP_CORE=OFF
+
+# Deprecated aliases, still accepted
+cmake .. -DBUILD_CONVERTED_CPP_CORE=OFF
 cmake .. -DBUILD_AS_CPP=OFF
 ```
 
-When `BUILD_AS_CPP=ON`:
-- C++ modules and compatibility shim are compiled as C++20
+When `BUILD_CPP_CORE=ON`:
+- C++ modules and the allocation bridge are compiled as C++20
 - Existing C sources remain compiled as C11 to avoid keyword conflicts
-- Compatibility shim (`compat_alloc.cpp`) provides C++-friendly allocation wrappers
-- Converted modules can use modern C++ features
+- Allocation bridge (`compat_alloc.cpp`) keeps allocation semantics consistent across the C/C++ boundary
+- Core modules can use modern C++ features
 - Generated lex/yacc files remain compiled as C for compatibility
 
-When `BUILD_AS_CPP=OFF`:
-- All sources are compiled as standard C11
-- No C++ dependencies are required
+When `BUILD_CPP_CORE=OFF`:
+- The public C API remains available
+- The build still links the supported C++ core, because the old pure-C core is no longer present in this checkout
+- Remaining support files and generated lex/yacc sources are still compiled as C11
 
 ### CMAKE_BUILD_TYPE
 Controls the optimization level and debug symbols.
@@ -173,47 +186,74 @@ cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
 ## Running Tests
 
-### Test Benchmark Executables
-After building, you can run the benchmark test executables:
-
-```bash
-# From build directory
-./bin/testbenchmark
-./bin/testbenchmark_err
-```
-
-Note: These executables require:
-- GSL library to be installed
-- Test data files in the `data/` directory
-
-### Legacy Test Suite
-You can still use the original Makefile test targets:
+### CTest Suite
+The CMake build now registers the existing C API tests and the C++ wrapper smoke test with CTest.
 
 ```bash
 # From repository root
-make test
-make valgrind
+ctest --test-dir build --output-on-failure
+```
+
+This runs:
+- the C++ wrapper smoke test
+- the existing MinUnit-style unit tests
+- the benchmark-style `real_tests` and `real_tests_err` executables with a reduced search count
+
+The parser suite also locks down the empty-list contract used by the matcher:
+- JSON `[]` is intentionally treated as an untyped empty list at parse time
+- the parser stores it with canonical `BETREE_INTEGER_LIST` tagging while preserving zero-sized views for the other list-capable domains
+- this behavior is covered by `event_parser_tests`
+
+CTest runs the tests from the repository root so relative paths like `data/...` and generated DOT outputs under `tests/` resolve correctly.
+
+### Benchmark-Labeled Tests
+The heavier benchmark-style tests are registered with the `benchmark` label:
+
+```bash
+# Run only the benchmark-style CTest entries
+ctest --test-dir build -L benchmark --output-on-failure
+```
+
+These labeled tests currently map to:
+- `real_tests`
+- `real_tests_err`
+
+They require:
+- GSL to be installed
+- the benchmark data files under `data/` to be present
+
+If the benchmark data files are missing, those executables print a skip message and exit successfully.
+
+### Benchmark Executables
+You can still run the benchmark executables directly if needed:
+
+```bash
+# From repository root
+./build/cmake/bin/testbenchmark 1
+./build/cmake/bin/testbenchmark_err 1
+```
+
+The optional numeric argument controls the search-count loop. The default is `10`; the CTest registration uses `1` to keep runtime small.
+
+### Legacy Makefile Tests
+The old Make-based test workflow has been retired. Use CTest instead:
+
+```bash
+# From repository root
+ctest --test-dir build --output-on-failure
 ```
 
 ## Legacy Makefile
 
-The original Makefile is still present and fully functional. You can continue to use it for:
-- Generating lex/yacc files
-- Building the library with traditional Make
-- Running the existing test suite
+The root `Makefile` is now a generation-only helper.
+The old Make-based library and test build has been retired along with the removed mirrored legacy `.c` core files.
+
+You can still use it for:
+- regenerating tracked lexer/parser sources
 
 ```bash
-# Build with Makefile
-make
-
-# Run tests
-make test
-
-# Run valgrind checks
-make valgrind
-
-# Build test benchmarks
-make build-test-benchmark
+# Regenerate tracked lexer/parser sources
+make src/lexer.c src/parser.c src/event_lexer.c src/event_parser.c
 ```
 
 ## Troubleshooting
@@ -255,32 +295,36 @@ make src/lexer.c src/parser.c src/event_lexer.c src/event_parser.c
 # 3. Install dependencies (Ubuntu example)
 sudo apt-get install cmake libgsl-dev flex bison
 
-# 4. Build with CMake in C++ mode
+# 4. Build with CMake using the supported core
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 cmake --build . -j$(nproc)
 
-# 5. Run tests (if test data is available)
-./bin/testbenchmark
+# 5. Run the full CTest suite
+cd ..
+ctest --test-dir build --output-on-failure
+
+# 6. Optionally run only the benchmark-labeled tests
+ctest --test-dir build -L benchmark --output-on-failure
 ```
 
 ## Migration Notes
 
-This CMake build system is designed for incremental migration to modern C++:
+This CMake build system uses a mixed-language layout built around the supported core:
 
-1. **Compatibility**: Both C and C++ compilation modes are supported
-2. **Gradual Conversion**: Individual modules can be converted to C++ incrementally
-3. **Legacy Support**: Original Makefile remains fully functional
-4. **Modern Dependencies**: vcpkg integration allows easy use of modern C++ libraries
+1. **Converted Core**: The main library core is built from the converted C++ sources
+2. **C API Compatibility**: The public C API remains available
+3. **Legacy Support**: The root Makefile remains only for flex/bison regeneration
+4. **Optional Dependencies**: vcpkg integration can provide optional libraries when needed
 
 ### Current Status
 
-✅ **Migration Complete**: All 22 core C modules have been successfully converted to C++20!
+✅ **Current Core Status**: The main core path is the converted C++20 implementation.
 
-- **Infrastructure**: CMake build system, vcpkg manifest, C++ compatibility shim
+- **Infrastructure**: CMake build system, vcpkg manifest, C++ allocation bridge
 - **C++20 Features**: nullptr, std::fprintf, std::abort, auto, static_cast, smart pointers
 - **ABI Compatibility**: All public APIs maintain C linkage via extern "C" wrappers
-- **Remaining C Code**: Only allocation layer (alloc.c) and generated parser files remain as C
+- **Remaining C Code**: Only allocation layer (`alloc.c`), `special.c`, and generated parser files remain as C
 
 ### Converted Modules
 

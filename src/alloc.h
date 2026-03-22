@@ -29,7 +29,7 @@ char* bstrdup(const char *s1);
 int bvasprintf(char **buf, const char *format, va_list va);
 int basprintf(char **buf, const char *format, ...);
 
-// Include C++ compatibility shim when compiling as C++
+// Include the C++ allocation bridge when compiling as C++
 // This must come after the macro definitions above
 #ifdef __cplusplus
 }  // extern "C"

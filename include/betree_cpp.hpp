@@ -32,6 +32,7 @@
 #include <vector>
 #include <stdexcept>
 #include <optional>
+#include <initializer_list>
 #include <cstdint>
 
 extern "C" {
@@ -39,6 +40,14 @@ extern "C" {
 }
 
 namespace be {
+
+namespace detail {
+
+inline std::string as_c_string(std::string_view value) {
+    return std::string(value);
+}
+
+} // namespace detail
 
 // Forward declarations
 class Tree;
@@ -65,6 +74,11 @@ struct SearchResult {
 
     bool empty() const { return matched_subs.empty(); }
     std::size_t size() const { return matched_subs.size(); }
+};
+
+struct IntegerConstant {
+    std::string_view name;
+    std::int64_t value;
 };
 
 /**
@@ -126,7 +140,8 @@ public:
      * @return Reference to this tree for method chaining
      */
     Tree& add_boolean(std::string_view name, bool allow_undefined = false) {
-        betree_add_boolean_variable(tree_.get(), name.data(), allow_undefined);
+        const auto name_str = detail::as_c_string(name);
+        betree_add_boolean_variable(tree_.get(), name_str.c_str(), allow_undefined);
         return *this;
     }
 
@@ -141,7 +156,8 @@ public:
      */
     Tree& add_integer(std::string_view name, bool allow_undefined,
                       std::int64_t min, std::int64_t max) {
-        betree_add_integer_variable(tree_.get(), name.data(), allow_undefined, min, max);
+        const auto name_str = detail::as_c_string(name);
+        betree_add_integer_variable(tree_.get(), name_str.c_str(), allow_undefined, min, max);
         return *this;
     }
 
@@ -156,7 +172,8 @@ public:
      */
     Tree& add_float(std::string_view name, bool allow_undefined,
                     double min, double max) {
-        betree_add_float_variable(tree_.get(), name.data(), allow_undefined, min, max);
+        const auto name_str = detail::as_c_string(name);
+        betree_add_float_variable(tree_.get(), name_str.c_str(), allow_undefined, min, max);
         return *this;
     }
 
@@ -169,7 +186,8 @@ public:
      * @return Reference to this tree for method chaining
      */
     Tree& add_string(std::string_view name, bool allow_undefined, std::size_t count) {
-        betree_add_string_variable(tree_.get(), name.data(), allow_undefined, count);
+        const auto name_str = detail::as_c_string(name);
+        betree_add_string_variable(tree_.get(), name_str.c_str(), allow_undefined, count);
         return *this;
     }
 
@@ -184,7 +202,8 @@ public:
      */
     Tree& add_integer_list(std::string_view name, bool allow_undefined,
                            std::int64_t min, std::int64_t max) {
-        betree_add_integer_list_variable(tree_.get(), name.data(), allow_undefined, min, max);
+        const auto name_str = detail::as_c_string(name);
+        betree_add_integer_list_variable(tree_.get(), name_str.c_str(), allow_undefined, min, max);
         return *this;
     }
 
@@ -197,7 +216,22 @@ public:
      * @return Reference to this tree for method chaining
      */
     Tree& add_string_list(std::string_view name, bool allow_undefined, std::size_t count) {
-        betree_add_string_list_variable(tree_.get(), name.data(), allow_undefined, count);
+        const auto name_str = detail::as_c_string(name);
+        betree_add_string_list_variable(tree_.get(), name_str.c_str(), allow_undefined, count);
+        return *this;
+    }
+
+    /**
+     * Add an integer-enum variable to the schema
+     *
+     * @param name Variable name
+     * @param allow_undefined Whether undefined values are allowed
+     * @param count Estimated number of distinct enum values
+     * @return Reference to this tree for method chaining
+     */
+    Tree& add_integer_enum(std::string_view name, bool allow_undefined, std::size_t count) {
+        const auto name_str = detail::as_c_string(name);
+        betree_add_integer_enum_variable(tree_.get(), name_str.c_str(), allow_undefined, count);
         return *this;
     }
 
@@ -209,7 +243,8 @@ public:
      * @return Reference to this tree for method chaining
      */
     Tree& add_frequency_caps(std::string_view name, bool allow_undefined) {
-        betree_add_frequency_caps_variable(tree_.get(), name.data(), allow_undefined);
+        const auto name_str = detail::as_c_string(name);
+        betree_add_frequency_caps_variable(tree_.get(), name_str.c_str(), allow_undefined);
         return *this;
     }
 
@@ -221,7 +256,8 @@ public:
      * @return Reference to this tree for method chaining
      */
     Tree& add_segments(std::string_view name, bool allow_undefined) {
-        betree_add_segments_variable(tree_.get(), name.data(), allow_undefined);
+        const auto name_str = detail::as_c_string(name);
+        betree_add_segments_variable(tree_.get(), name_str.c_str(), allow_undefined);
         return *this;
     }
 
@@ -233,7 +269,46 @@ public:
      * @return true if insertion succeeded, false otherwise
      */
     bool insert(std::uint64_t id, std::string_view expr) {
-        return betree_insert(tree_.get(), id, expr.data());
+        const auto expr_str = detail::as_c_string(expr);
+        return betree_insert(tree_.get(), id, expr_str.c_str());
+    }
+
+    /**
+     * Insert a subscription expression with integer constants
+     *
+     * @param id Unique subscription ID
+     * @param expr Boolean expression string
+     * @param constants Integer constants available during insert
+     * @return true if insertion succeeded, false otherwise
+     */
+    bool insert_with_constants(
+        std::uint64_t id, std::string_view expr, const std::vector<IntegerConstant>& constants) {
+        const auto expr_str = detail::as_c_string(expr);
+        std::vector<betree_constant*> owned_constants;
+        std::vector<const betree_constant*> raw_constants;
+        owned_constants.reserve(constants.size());
+        raw_constants.reserve(constants.size());
+        for (const auto& constant : constants) {
+            const auto name_str = detail::as_c_string(constant.name);
+            betree_constant* ptr = betree_make_integer_constant(name_str.c_str(), constant.value);
+            if (!ptr) {
+                betree_free_constants(owned_constants.size(), owned_constants.data());
+                throw BetreeException("Failed to create integer constant");
+            }
+            owned_constants.push_back(ptr);
+            raw_constants.push_back(ptr);
+        }
+
+        const bool ok = betree_insert_with_constants(
+            tree_.get(), id, raw_constants.size(), raw_constants.data(), expr_str.c_str());
+        betree_free_constants(owned_constants.size(), owned_constants.data());
+        return ok;
+    }
+
+    bool insert_with_constants(std::uint64_t id,
+        std::string_view expr,
+        std::initializer_list<IntegerConstant> constants) {
+        return insert_with_constants(id, expr, std::vector<IntegerConstant>(constants));
     }
 
     /**
@@ -249,7 +324,8 @@ public:
         }
 
         SearchResult result;
-        if (betree_search(tree_.get(), event_json.data(), rep.get())) {
+        const auto event_json_str = detail::as_c_string(event_json);
+        if (betree_search(tree_.get(), event_json_str.c_str(), rep.get())) {
             result.matched_subs.assign(rep->subs, rep->subs + rep->matched);
             result.evaluated = rep->evaluated;
             result.memoized = rep->memoized;
@@ -273,7 +349,8 @@ public:
         }
 
         SearchResult result;
-        if (betree_search_ids(tree_.get(), event_json.data(), rep.get(),
+        const auto event_json_str = detail::as_c_string(event_json);
+        if (betree_search_ids(tree_.get(), event_json_str.c_str(), rep.get(),
                              ids.data(), ids.size())) {
             result.matched_subs.assign(rep->subs, rep->subs + rep->matched);
             result.evaluated = rep->evaluated;

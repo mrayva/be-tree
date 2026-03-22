@@ -13,6 +13,56 @@
 #include "tree.h"
 #include "utils.h"
 
+static int assert_report_ids(const struct report* report, const uint64_t* expected, size_t count)
+{
+    mu_assert(report->matched == count, "matchedCount");
+    for(size_t i = 0; i < count; ++i) {
+        mu_assert(report->subs[i] == expected[i], "matchedId");
+    }
+    return 0;
+}
+
+static int assert_report_id_set(const struct report* report, const uint64_t* expected, size_t count)
+{
+    mu_assert(report->matched == count, "matchedCount");
+    for(size_t i = 0; i < count; ++i) {
+        bool found = false;
+        for(size_t j = 0; j < report->matched; ++j) {
+            if(report->subs[j] == expected[i]) {
+                found = true;
+                break;
+            }
+        }
+        mu_assert(found, "matchedIdSet");
+    }
+    return 0;
+}
+
+static int assert_reports_equal(const struct report* lhs, const struct report* rhs)
+{
+    mu_assert(lhs->matched == rhs->matched, "matchedParity");
+    for(size_t i = 0; i < lhs->matched; ++i) {
+        mu_assert(lhs->subs[i] == rhs->subs[i], "matchedIdParity");
+    }
+    return 0;
+}
+
+static int assert_report_sets_equal(const struct report* lhs, const struct report* rhs)
+{
+    mu_assert(lhs->matched == rhs->matched, "matchedParity");
+    for(size_t i = 0; i < lhs->matched; ++i) {
+        bool found = false;
+        for(size_t j = 0; j < rhs->matched; ++j) {
+            if(lhs->subs[i] == rhs->subs[j]) {
+                found = true;
+                break;
+            }
+        }
+        mu_assert(found, "matchedIdSetParity");
+    }
+    return 0;
+}
+
 int test_search()
 {
     struct betree* tree = betree_make();
@@ -146,6 +196,158 @@ int test_search_ids_4()
     return 0;
 }
 
+int test_search_empty_lists()
+{
+    struct betree* tree = betree_make();
+    add_attr_domain_il(tree->config, "il", false);
+    add_attr_domain_sl(tree->config, "sl", false);
+
+    mu_assert(betree_insert(tree, 1, "il is empty"), "");
+    mu_assert(betree_insert(tree, 2, "sl is empty"), "");
+    mu_assert(betree_insert(tree, 3, "il one of (1)"), "");
+
+    struct report* report = make_report();
+    mu_assert(betree_search(tree, "{\"il\": [], \"sl\": []}", report), "");
+    mu_assert(report->matched == 2 && report->subs[0] == 1 && report->subs[1] == 2, "goodEvent");
+
+    free_report(report);
+    betree_free(tree);
+    return 0;
+}
+
+int test_search_integer_enum_event_normalization()
+{
+    struct betree* tree = betree_make();
+    add_attr_domain_bounded_ie(tree->config, "ie", false, 8);
+
+    mu_assert(betree_insert(tree, 1, "ie = 2"), "");
+    mu_assert(betree_insert(tree, 2, "ie = 3"), "");
+
+    struct report* report = make_report();
+    mu_assert(betree_search(tree, "{\"ie\": 2}", report), "");
+    mu_assert(report->matched == 1 && report->subs[0] == 1, "goodEvent");
+
+    free_report(report);
+    betree_free(tree);
+    return 0;
+}
+
+int test_search_allow_undefined_by_domain()
+{
+    struct betree* tree = betree_make();
+    add_attr_domain_i(tree->config, "i", true);
+    add_attr_domain_s(tree->config, "s", true);
+    add_attr_domain_il(tree->config, "il", true);
+    add_attr_domain_sl(tree->config, "sl", true);
+    add_attr_domain_ie(tree->config, "ie", true);
+
+    mu_assert(betree_insert(tree, 1, "i is null"), "");
+    mu_assert(betree_insert(tree, 2, "s is null"), "");
+    mu_assert(betree_insert(tree, 3, "il is null"), "");
+    mu_assert(betree_insert(tree, 4, "sl is null"), "");
+    mu_assert(betree_insert(tree, 5, "ie is null"), "");
+    mu_assert(betree_insert(tree, 6, "il is empty"), "");
+    mu_assert(betree_insert(tree, 7, "sl is empty"), "");
+
+    struct report* report = make_report();
+    mu_assert(betree_search(tree, "{}", report), "");
+    mu_assert(report->matched == 5, "goodMatchCount");
+    mu_assert(report->subs[0] == 1 && report->subs[1] == 2 && report->subs[2] == 3
+            && report->subs[3] == 4 && report->subs[4] == 5,
+        "goodMatchedSubs");
+
+    free_report(report);
+    betree_free(tree);
+    return 0;
+}
+
+int test_search_disallow_undefined_validation()
+{
+    struct betree* tree = betree_make();
+    add_attr_domain_i(tree->config, "i", false);
+    add_attr_domain_il(tree->config, "il", false);
+
+    mu_assert(betree_insert(tree, 1, "i = 1"), "");
+    mu_assert(betree_insert(tree, 2, "il is empty"), "");
+
+    struct report* report = make_report();
+    mu_assert(!betree_search(tree, "{}", report), "");
+    mu_assert(report->matched == 0, "noMatches");
+
+    free_report(report);
+    betree_free(tree);
+    return 0;
+}
+
+int test_search_with_event_parity()
+{
+    struct betree* tree = betree_make();
+    add_attr_domain_b(tree->config, "flag", false);
+    add_attr_domain_bounded_i(tree->config, "age", false, 0, 120);
+    add_attr_domain_s(tree->config, "country", false);
+
+    mu_assert(betree_insert(tree, 1, "flag and age >= 21"), "");
+    mu_assert(betree_insert(tree, 2, "country = \"USA\""), "");
+    mu_assert(betree_insert(tree, 3, "flag and country = \"CAN\""), "");
+
+    struct report* json_report = make_report();
+    mu_assert(betree_search(tree,
+            "{\"flag\": true, \"age\": 25, \"country\": \"USA\"}",
+            json_report),
+        "");
+
+    struct betree_event* event = betree_make_event(tree);
+    betree_set_variable(event, 0, betree_make_boolean_variable("flag", true));
+    betree_set_variable(event, 1, betree_make_integer_variable("age", 25));
+    betree_set_variable(event, 2, betree_make_string_variable("country", "USA"));
+
+    struct report* event_report = make_report();
+    mu_assert(betree_search_with_event(tree, event, event_report), "");
+
+    const uint64_t expected[] = {1, 2};
+    mu_assert(assert_report_id_set(json_report, expected, 2) == 0, "");
+    mu_assert(assert_report_sets_equal(json_report, event_report) == 0, "");
+
+    free_report(event_report);
+    betree_free_event(event);
+    free_report(json_report);
+    betree_free(tree);
+    return 0;
+}
+
+int test_search_with_event_ids_parity()
+{
+    struct betree* tree = betree_make();
+    add_attr_domain_bounded_i(tree->config, "a", false, 0, 10);
+    add_attr_domain_bounded_i(tree->config, "b", false, 0, 10);
+
+    mu_assert(betree_insert(tree, 1, "a = 1"), "");
+    mu_assert(betree_insert(tree, 2, "b = 2"), "");
+    mu_assert(betree_insert(tree, 3, "a = 1 and b = 2"), "");
+    mu_assert(betree_insert(tree, 4, "a = 2"), "");
+
+    const uint64_t ids[] = {1, 2, 3, 4};
+
+    struct report* json_report = make_report();
+    mu_assert(betree_search_ids(tree, "{\"a\": 1, \"b\": 2}", json_report, ids, 4), "");
+
+    struct betree_event* event = betree_make_event(tree);
+    betree_set_variable(event, 0, betree_make_integer_variable("a", 1));
+    betree_set_variable(event, 1, betree_make_integer_variable("b", 2));
+
+    struct report* event_report = make_report();
+    mu_assert(betree_search_with_event_ids(tree, event, event_report, ids, 4), "");
+
+    const uint64_t expected[] = {1, 2, 3};
+    mu_assert(assert_report_id_set(json_report, expected, 3) == 0, "");
+    mu_assert(assert_report_sets_equal(json_report, event_report) == 0, "");
+
+    free_report(event_report);
+    betree_free_event(event);
+    free_report(json_report);
+    betree_free(tree);
+    return 0;
+}
 
 int all_tests()
 {
@@ -155,6 +357,12 @@ int all_tests()
     mu_run_test(test_search_ids_2);
     mu_run_test(test_search_ids_3);
     mu_run_test(test_search_ids_4);
+    mu_run_test(test_search_empty_lists);
+    mu_run_test(test_search_integer_enum_event_normalization);
+    mu_run_test(test_search_allow_undefined_by_domain);
+    mu_run_test(test_search_disallow_undefined_validation);
+    mu_run_test(test_search_with_event_parity);
+    mu_run_test(test_search_with_event_ids_parity);
     return 0;
 }
 

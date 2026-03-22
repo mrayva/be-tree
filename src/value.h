@@ -83,39 +83,27 @@ struct betree_frequency_caps {
 
 struct value {
     enum betree_value_type_e value_type;
-    union {
-        int64_t integer_value;
-        double float_value;
-        bool boolean_value;
-        struct string_value string_value;
-        struct betree_integer_list* integer_list_value;
-        struct betree_string_list* string_list_value;
-        struct betree_segments* segments_value;
-        struct betree_frequency_caps* frequency_caps_value;
-        struct integer_enum_value integer_enum_value;
-    };
+    int64_t integer_value;
+    double float_value;
+    bool boolean_value;
+    struct string_value string_value;
+    struct betree_integer_list* integer_list_value;
+    struct betree_string_list* string_list_value;
+    struct betree_segments* segments_value;
+    struct betree_frequency_caps* frequency_caps_value;
+    struct integer_enum_value integer_enum_value;
 };
 
 struct value_bound {
     enum betree_value_type_e value_type;
-    union {
-        struct {
-            int64_t imin;
-            int64_t imax;
-        };
-        struct {
-            double fmin;
-            double fmax;
-        };
-        struct {
-            bool bmin;
-            bool bmax;
-        };
-        struct {
-            size_t smin;
-            size_t smax;
-        };
-    };
+    int64_t imin;
+    int64_t imax;
+    double fmin;
+    double fmax;
+    bool bmin;
+    bool bmax;
+    size_t smin;
+    size_t smax;
 };
 
 // When compiling as C++, use the modern C++ header for function declarations
@@ -171,4 +159,3 @@ void sort_and_remove_duplicate_string_list(struct betree_string_list* list);
 #ifdef __cplusplus
 }
 #endif
-

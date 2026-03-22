@@ -349,6 +349,96 @@ int test_search_with_event_ids_parity()
     return 0;
 }
 
+int test_exists_parity()
+{
+    struct betree* tree = betree_make();
+    add_attr_domain_b(tree->config, "flag", false);
+    add_attr_domain_bounded_i(tree->config, "age", false, 0, 120);
+    add_attr_domain_s(tree->config, "country", false);
+
+    mu_assert(betree_insert(tree, 1, "flag and age >= 21"), "");
+    mu_assert(betree_insert(tree, 2, "country = \"USA\""), "");
+    mu_assert(betree_insert(tree, 3, "flag and country = \"CAN\""), "");
+
+    const char* match_event = "{\"flag\": true, \"age\": 25, \"country\": \"USA\"}";
+    struct report* match_report = make_report();
+    mu_assert(betree_search(tree, match_event, match_report), "");
+    mu_assert(match_report->matched == 2, "");
+    mu_assert(betree_exists(tree, match_event), "");
+
+    struct betree_event* match_object = betree_make_event(tree);
+    betree_set_variable(match_object, 0, betree_make_boolean_variable("flag", true));
+    betree_set_variable(match_object, 1, betree_make_integer_variable("age", 25));
+    betree_set_variable(match_object, 2, betree_make_string_variable("country", "USA"));
+    mu_assert(betree_exists_with_event(tree, match_object), "");
+
+    const char* miss_event = "{\"flag\": false, \"age\": 17, \"country\": \"MEX\"}";
+    struct report* miss_report = make_report();
+    mu_assert(betree_search(tree, miss_event, miss_report), "");
+    mu_assert(miss_report->matched == 0, "");
+    mu_assert(!betree_exists(tree, miss_event), "");
+
+    struct betree_event* miss_object = betree_make_event(tree);
+    betree_set_variable(miss_object, 0, betree_make_boolean_variable("flag", false));
+    betree_set_variable(miss_object, 1, betree_make_integer_variable("age", 17));
+    betree_set_variable(miss_object, 2, betree_make_string_variable("country", "MEX"));
+    mu_assert(!betree_exists_with_event(tree, miss_object), "");
+
+    betree_free_event(miss_object);
+    free_report(miss_report);
+    betree_free_event(match_object);
+    free_report(match_report);
+    betree_free(tree);
+    return 0;
+}
+
+int test_search_with_event_invalid_event_rejection()
+{
+    struct betree* tree = betree_make();
+    add_attr_domain_bounded_i(tree->config, "age", false, 0, 120);
+    add_attr_domain_s(tree->config, "country", false);
+
+    mu_assert(betree_insert(tree, 1, "age >= 21"), "");
+    mu_assert(betree_insert(tree, 2, "country = \"USA\""), "");
+
+    struct betree_event* invalid_event = betree_make_event(tree);
+    betree_set_variable(invalid_event, 1, betree_make_string_variable("country", "USA"));
+
+    struct report* report = make_report();
+    mu_assert(!betree_search_with_event(tree, invalid_event, report), "");
+    mu_assert(report->matched == 0, "");
+
+    betree_free_event(invalid_event);
+    free_report(report);
+    betree_free(tree);
+    return 0;
+}
+
+int test_search_with_event_ids_invalid_event_rejection()
+{
+    struct betree* tree = betree_make();
+    add_attr_domain_bounded_i(tree->config, "age", false, 0, 120);
+    add_attr_domain_s(tree->config, "country", false);
+
+    mu_assert(betree_insert(tree, 1, "age >= 21"), "");
+    mu_assert(betree_insert(tree, 2, "country = \"USA\""), "");
+    mu_assert(betree_insert(tree, 3, "age >= 30 and country = \"USA\""), "");
+
+    const uint64_t ids[] = {1, 3};
+
+    struct betree_event* invalid_event = betree_make_event(tree);
+    betree_set_variable(invalid_event, 1, betree_make_string_variable("country", "USA"));
+
+    struct report* report = make_report();
+    mu_assert(!betree_search_with_event_ids(tree, invalid_event, report, ids, 2), "");
+    mu_assert(report->matched == 0, "");
+
+    betree_free_event(invalid_event);
+    free_report(report);
+    betree_free(tree);
+    return 0;
+}
+
 int all_tests()
 {
     mu_run_test(test_search);
@@ -363,6 +453,9 @@ int all_tests()
     mu_run_test(test_search_disallow_undefined_validation);
     mu_run_test(test_search_with_event_parity);
     mu_run_test(test_search_with_event_ids_parity);
+    mu_run_test(test_exists_parity);
+    mu_run_test(test_search_with_event_invalid_event_rejection);
+    mu_run_test(test_search_with_event_ids_invalid_event_rejection);
     return 0;
 }
 

@@ -9,6 +9,7 @@
  * - STL containers for results
  * - std::string_view for zero-copy strings
  * - No manual memory management required
+ * - First-class structured event API
  */
 
 #include <iostream>
@@ -78,7 +79,7 @@ int main()
         std::cout << "  " << (success ? "✓" : "✗")
                   << " Sub 5: Purchased item 10\n";
 
-        // 3. Match events using string literals
+        // 3. Match events using JSON and structured events
         std::cout << "\nMatching events:\n";
 
         // Event 1: Young premium user with good score
@@ -122,9 +123,32 @@ int main()
         })", filter_ids);
         print_results("Event 4: UK user (filtered IDs: 1, 3, 5)", result4);
 
+        // Event 5: Structured event API
+        auto event = tree.make_event();
+        event.set_integer(0, 22)
+             .set_string(1, "USA")
+             .set_boolean(2, true)
+             .set_float(3, 85.5)
+             .set_integer_list(4, {10, 20, 30});
+
+        auto result5 = tree.search(event);
+        print_results("Event 5: Structured event API", result5);
+
+        std::vector<std::uint64_t> event_filter_ids = {1, 5};
+        auto result6 = tree.search(event, event_filter_ids);
+        print_results("Event 6: Structured event API with filtered IDs", result6);
+
+        // Reuse the same event object after replacing one slot
+        event.set_integer(0, 12);
+        auto result7 = tree.search(event);
+        print_results("Event 7: Reused structured event after replacement", result7);
+
+        std::cout << "  Structured-event exists() after replacement: "
+                  << (tree.exists(event) ? "true" : "false") << "\n";
+
         // 4. Summary
         std::cout << "\nSearch summary:\n";
-        std::cout << "  Total events tested: 4\n";
+        std::cout << "  Total events tested: 7\n";
         std::cout << "  All searches completed successfully\n";
 
         std::cout << "\n✓ Example completed successfully\n";

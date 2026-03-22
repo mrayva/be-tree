@@ -749,7 +749,7 @@ static bool match_set_expr(
     const struct betree_variable** preds, const struct ast_set_expr set_expr, struct report* report)
 {
     return ast_eval_shared::match_set_expr(preds, set_expr, [report](betree_var_t var) {
-        if(report->cb) {
+        if(report != nullptr && report->cb) {
             report->last_var = var;
         }
     });
@@ -861,7 +861,7 @@ static bool match_bool_expr(const struct betree_variable** preds,
         case AST_BOOL_VARIABLE: {
             bool value;
             bool is_variable_defined = get_bool_var(bool_expr.variable.var, preds, &value);
-            if (report->cb) {
+            if (report != nullptr && report->cb) {
                 report->last_var = bool_expr.variable.var;
             }
             if(is_variable_defined == false) {
@@ -958,13 +958,13 @@ static bool match_node_inner(const struct betree_variable** preds,
     switch(node->type) {
         case AST_TYPE_IS_NULL_EXPR:
             result = match_is_null_expr(preds, node->is_null_expr);
-            if (report->cb) {
+            if (report != nullptr && report->cb) {
                 report->last_var = node->is_null_expr.attr_var.var;
             }
             break;
         case AST_TYPE_SPECIAL_EXPR: {
             result = match_special_expr(preds, node->special_expr);
-            if (report->cb) {
+            if (report != nullptr && report->cb) {
                 report->last_var = special_expr_var(&node->special_expr);
             }
             break;
@@ -975,7 +975,7 @@ static bool match_node_inner(const struct betree_variable** preds,
         }
         case AST_TYPE_LIST_EXPR: {
             result = match_list_expr(preds, node->list_expr);
-            if (report->cb) {
+            if (report != nullptr && report->cb) {
                 report->last_var = node->list_expr.attr_var.var;
             }
             break;
@@ -986,14 +986,14 @@ static bool match_node_inner(const struct betree_variable** preds,
         }
         case AST_TYPE_COMPARE_EXPR: {
             result = match_compare_expr(preds, node->compare_expr);
-            if (report->cb) {
+            if (report != nullptr && report->cb) {
                 report->last_var = node->compare_expr.attr_var.var;
             }
             break;
         }
         case AST_TYPE_EQUALITY_EXPR: {
             result = match_equality_expr(preds, node->equality_expr);
-            if (report->cb) {
+            if (report != nullptr && report->cb) {
                 report->last_var = node->equality_expr.attr_var.var;
             }
             break;

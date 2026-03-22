@@ -70,6 +70,103 @@ void verify_wrapper_rejections() {
             "wrapper filtered search did not return empty result on invalid event");
 }
 
+void verify_wrapper_event_api() {
+    be::Tree tree;
+    tree.add_boolean("flag", false)
+        .add_integer("age", false, 0, 120)
+        .add_string("country", false, 8)
+        .add_integer_enum("status", false, 8)
+        .add_string_list("labels", false, 8)
+        .add_segments("seg", false)
+        .add_frequency_caps("frequency_caps", false)
+        .add_integer("now", false, 0, 1000);
+
+    require(tree.insert(200, "flag and age >= 21 and country = \"USA\""),
+            "event API insert failed");
+    require(tree.insert(201, "status = 2 and labels is empty"),
+            "event API conversion insert failed");
+    require(tree.insert_with_constants(
+                202,
+                "segment_within(seg, 1, 20) and within_frequency_cap(\"flight\", \"ns\", 100, 0)",
+                {{"flight_id", 10}}),
+            "event API special insert failed");
+
+    auto event = tree.make_event();
+    event.set_boolean(0, true)
+        .set_integer(1, 25)
+        .set_string(2, "USA")
+        .set_integer_enum(3, 2)
+        .set_empty_list(4)
+        .set_segments(5, {{1, 10000000}})
+        .set_frequency_caps(6, {{"flight", 10, "ns", false, 0, 0}})
+        .set_integer(7, 0);
+
+    const auto json_result = tree.search(
+        "{\"flag\": true, \"age\": 25, \"country\": \"USA\", \"status\": 2, \"labels\": [], "
+        "\"seg\": [[1, 10000000]], \"frequency_caps\": [[\"flight\", 10, \"ns\", 0, 0]], "
+        "\"now\": 0}");
+    const auto event_result = tree.search(event);
+    require(event_result.matched_subs == json_result.matched_subs,
+            "event API search parity failed");
+    require(tree.exists(event),
+            "event API exists failed");
+
+    const std::vector<std::uint64_t> filtered_ids = {200, 202};
+    const auto filtered_result = tree.search(event, filtered_ids);
+    require(filtered_result.size() == 2,
+            "event API filtered search returned wrong count");
+    require(filtered_result.matched_subs[0] == 200 && filtered_result.matched_subs[1] == 202,
+            "event API filtered search returned wrong ids");
+
+    event.set_integer(1, 19);
+    const auto replaced = tree.search(event);
+    require(replaced.size() == 2,
+            "event API replacement search returned wrong count");
+    require(replaced.matched_subs[0] == 201 && replaced.matched_subs[1] == 202,
+            "event API replacement search returned wrong ids");
+
+    const auto reused = tree.search(event);
+    require(reused.matched_subs == replaced.matched_subs,
+            "event API reuse after normalization failed");
+
+    event.set_integer(1, 25);
+    event.clear(0);
+    const auto missing_required = tree.search(event);
+    require(missing_required.empty(),
+            "event API clear did not produce empty result on invalid event");
+    require(!tree.exists(event),
+            "event API clear did not make exists fail");
+}
+
+void verify_wrapper_event_api_rejections() {
+    be::Tree tree;
+    tree.add_segments("seg", false)
+        .add_frequency_caps("frequency_caps", false)
+        .add_integer("now", false, 0, 1000);
+
+    require(tree.insert_with_constants(
+                300,
+                "segment_within(seg, 1, 20) and within_frequency_cap(\"flight\", \"ns\", 100, 0)",
+                {{"flight_id", 10}}),
+            "wrapper event rejection insert failed");
+
+    auto event = tree.make_event();
+    event.set_integer_list(0, {1})
+        .set_string_list(1, {"bad"})
+        .set_integer(2, 0);
+
+    const auto result = tree.search(event);
+    require(result.empty(),
+            "wrapper event API accepted special-domain type mismatch");
+    require(!tree.exists(event),
+            "wrapper event API exists accepted special-domain type mismatch");
+
+    const std::vector<std::uint64_t> ids = {300};
+    const auto filtered = tree.search(event, ids);
+    require(filtered.empty(),
+            "wrapper event API filtered search accepted special-domain type mismatch");
+}
+
 } // namespace
 
 int main() {
@@ -139,6 +236,8 @@ int main() {
             "frequency constant wrapper filtered search returned unexpected matches");
 
     verify_wrapper_rejections();
+    verify_wrapper_event_api();
+    verify_wrapper_event_api_rejections();
 
     return 0;
 }

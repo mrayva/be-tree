@@ -199,10 +199,16 @@ This runs:
 - the existing MinUnit-style unit tests
 - the benchmark-style `real_tests` and `real_tests_err` executables with a reduced search count
 
+The wrapper smoke test now covers both wrapper surfaces:
+- JSON-based `Tree::search(...)`
+- structured-event usage through `Tree::make_event()`, typed `Event::set_*` methods, `Tree::search(event, ...)`, and `Tree::exists(event)`
+
 The parser suite also locks down the empty-list contract used by the matcher:
 - JSON `[]` is intentionally treated as an untyped empty list at parse time
 - the parser stores it with canonical `BETREE_INTEGER_LIST` tagging while preserving zero-sized views for the other list-capable domains
 - this behavior is covered by `event_parser_tests`
+
+The filtered search APIs (`betree_search_ids`, `betree_search_with_event_ids`, and the `_err` variants) expect the `ids` array to be sorted in ascending order and treated as a set. The current implementation uses binary search over that filter, so unsorted or duplicate-heavy arrays are not a guaranteed contract.
 
 CTest runs the tests from the repository root so relative paths like `data/...` and generated DOT outputs under `tests/` resolve correctly.
 

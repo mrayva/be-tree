@@ -1621,6 +1621,7 @@ struct betree_event* make_empty_event()
         std::fprintf(stderr, "%s event bcalloc failed\n", __func__);
         std::abort();
     }
+    event->config = nullptr;
     event->variable_count = 0;
     event->variables = nullptr;
     return event;
@@ -1979,8 +1980,36 @@ void fill_event(const struct config* config, struct betree_event* event)
         }
         pred->attr_var.var = var;
         struct attr_domain* domain = config->attr_domains[var];
-        pred->value.value_type = domain->bound.value_type;
-        switch(pred->value.value_type) {
+        enum betree_value_type_e expected_type = domain->bound.value_type;
+        enum betree_value_type_e actual_type = pred->value.value_type;
+        if(actual_type == BETREE_INTEGER && expected_type == BETREE_INTEGER_ENUM) {
+            pred->value.value_type = BETREE_INTEGER_ENUM;
+            actual_type = BETREE_INTEGER_ENUM;
+        }
+        else if(actual_type == BETREE_INTEGER_LIST
+            && pred->value.integer_list_value != nullptr
+            && pred->value.integer_list_value->count == 0
+            && (expected_type == BETREE_STRING_LIST
+                || expected_type == BETREE_SEGMENTS
+                || expected_type == BETREE_FREQUENCY_CAPS)) {
+            free_integer_list(pred->value.integer_list_value);
+            pred->value.integer_list_value = nullptr;
+            if(expected_type == BETREE_STRING_LIST) {
+                pred->value.string_list_value = make_string_list();
+            }
+            else if(expected_type == BETREE_SEGMENTS) {
+                pred->value.segments_value = make_segments();
+            }
+            else {
+                pred->value.frequency_caps_value = make_frequency_caps();
+            }
+            pred->value.value_type = expected_type;
+            actual_type = expected_type;
+        }
+        else if(actual_type != expected_type) {
+            continue;
+        }
+        switch(actual_type) {
             case BETREE_BOOLEAN:
             case BETREE_INTEGER:
             case BETREE_FLOAT:
@@ -2034,6 +2063,9 @@ bool validate_variables(const struct config* config, const struct betree_variabl
         const struct attr_domain* attr_domain = config->attr_domains[i];
         const struct betree_variable* variable = variables[i];
         if(attr_domain->allow_undefined == false && variable == nullptr) {
+            return false;
+        }
+        if(variable != nullptr && variable->value.value_type != attr_domain->bound.value_type) {
             return false;
         }
     }

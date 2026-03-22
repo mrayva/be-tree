@@ -808,6 +808,7 @@ struct betree_variable_definition betree_get_variable_definition_err(
 struct betree_event* betree_make_event_err(const struct betree_err* betree)
 {
     auto* event = static_cast<struct betree_event*>(bmalloc(sizeof(struct betree_event)));
+    event->config = betree->config;
     event->variable_count = betree->config->attr_domain_count;
     event->variables = static_cast<struct betree_variable**>(bcalloc(event->variable_count * sizeof(*event->variables)));
     return event;

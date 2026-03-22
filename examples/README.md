@@ -24,7 +24,42 @@ gcc -o basic_usage basic_usage.c -I../src -L../build/cmake/lib -lbetree -lm
 LD_LIBRARY_PATH=../build/cmake/lib ./basic_usage
 ```
 
-### 2. `cpp_usage.cpp` - Modern C++ Example (Inline Wrapper)
+### 2. `filtered_search.c` - Sorted ID Filter Example
+
+Small C API example showing filtered search with `betree_search_ids(...)`:
+- sorted ascending id filters
+- filtered result sets
+- minimal setup for the common “only check these ids” path
+
+**Compile:**
+```bash
+gcc -o filtered_search filtered_search.c -I../src -L../build/cmake/lib -lbetree -lm
+```
+
+**Run:**
+```bash
+LD_LIBRARY_PATH=../build/cmake/lib ./filtered_search
+```
+
+### 3. `err_reason_example.c` - `_err` Reason Reporting Example
+
+Focused C API example for reason reporting:
+- `betree_err`
+- `make_report_err(...)`
+- non-match reason buckets
+- reporting subscription ids grouped by last-failing reason
+
+**Compile:**
+```bash
+gcc -o err_reason_example err_reason_example.c -I../src -L../build/cmake/lib -lbetree -lm
+```
+
+**Run:**
+```bash
+LD_LIBRARY_PATH=../build/cmake/lib ./err_reason_example
+```
+
+### 4. `cpp_usage.cpp` - Modern C++ Example (Inline Wrapper)
 
 A modern C++20 example featuring an inline wrapper class:
 - RAII wrapper class around the C API
@@ -44,7 +79,7 @@ g++ -std=c++20 -o cpp_usage cpp_usage.cpp -I../src -L../build/cmake/lib -lbetree
 LD_LIBRARY_PATH=../build/cmake/lib ./cpp_usage
 ```
 
-### 3. `cpp_modern.cpp` - Production C++ API Example
+### 5. `cpp_modern.cpp` - Production C++ API Example
 
 Demonstrates the production-quality `betree_cpp.hpp` wrapper API:
 - Uses the official `be::Tree` class from `include/betree_cpp.hpp`
@@ -53,7 +88,7 @@ Demonstrates the production-quality `betree_cpp.hpp` wrapper API:
 - Method chaining for all schema operations
 - `std::string_view` convenience at the wrapper API boundary
 - `be::SearchResult` with STL containers
-- Comprehensive API coverage
+- JSON and structured-event search coverage
 
 **Compile:**
 ```bash
@@ -63,6 +98,27 @@ g++ -std=c++20 -o cpp_modern cpp_modern.cpp -I../src -I../include -L../build/cma
 **Run:**
 ```bash
 LD_LIBRARY_PATH=../build/cmake/lib ./cpp_modern
+```
+
+### 6. `cpp_special_events.cpp` - Structured Special-Domain Example
+
+Focused example for the wrapper's structured-event API:
+- `Tree::make_event()`
+- typed `Event::set_*` methods
+- integer-enum event values
+- empty-list polymorphism
+- `segments` and `frequency_caps`
+- filtered structured-event search
+- negative special-domain mismatch behavior
+
+**Compile:**
+```bash
+g++ -std=c++20 -o cpp_special_events cpp_special_events.cpp -I../src -I../include -L../build/cmake/lib -lbetree -lm
+```
+
+**Run:**
+```bash
+LD_LIBRARY_PATH=../build/cmake/lib ./cpp_special_events
 ```
 
 ## Building with CMake
@@ -78,8 +134,11 @@ make examples
 Then run:
 ```bash
 ./cmake/examples/basic_usage    # C API
+./cmake/examples/filtered_search  # C API sorted-id filtering
+./cmake/examples/err_reason_example  # C API _err reason reporting
 ./cmake/examples/cpp_usage      # C++ inline wrapper
 ./cmake/examples/cpp_modern     # C++ production API
+./cmake/examples/cpp_special_events  # C++ structured special domains
 ```
 
 ## What These Examples Demonstrate
@@ -111,7 +170,9 @@ premium = true and (score >= 80.0 or purchases > 10)
 
 ### Event Format
 
-Events are JSON objects with key-value pairs matching the defined schema:
+Events can be supplied either as JSON objects or through the structured wrapper event API.
+
+JSON example:
 
 ```json
 {
@@ -149,6 +210,21 @@ struct report* make_report();
 void free_report(struct report* report);
 bool betree_search(const struct betree* tree, const char* event_json,
                    struct report* report);
+bool betree_search_ids(const struct betree* tree, const char* event_json,
+                       struct report* report, const uint64_t* ids, size_t sz);
+```
+
+### C `_err` API (betree_err.h)
+
+```c
+struct betree_err* betree_make_err();
+bool betree_insert_err(struct betree_err* tree, betree_sub_t id, const char* expr);
+bool betree_make_sub_ids(struct betree_err* tree);
+
+struct report_err* make_report_err(const struct betree_err* tree);
+void free_report_err(struct report_err* report);
+bool betree_search_err(const struct betree_err* tree, const char* event_json,
+                       struct report_err* report);
 ```
 
 ### C++ API (betree_cpp.hpp)
@@ -170,6 +246,17 @@ for (auto sub_id : results.matched_subs) {
 // Automatic cleanup via RAII
 ```
 
+Structured event example:
+
+```cpp
+auto event = tree.make_event();
+event.set_integer(0, 25)
+     .set_string(1, "USA");
+
+auto results = tree.search(event);
+bool any = tree.exists(event);
+```
+
 Features:
 - **Namespace:** All types in `be::` namespace
 - **RAII:** Automatic resource management with `be::Tree`
@@ -177,6 +264,7 @@ Features:
 - **Results:** `be::SearchResult` with `std::vector<uint64_t>`
 - **Safe wrapper boundary:** Accepts `std::string_view` and materializes safe C strings when calling the C API
 - **Method chaining:** Fluent API for schema definition
+- **Structured events:** `Tree::make_event()` plus typed `Event::set_*` methods
 - **Type safety:** Strong typing with C++20
 
 The wrapper is header-only and works alongside the C API.

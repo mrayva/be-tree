@@ -27,11 +27,11 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 #include <stdexcept>
-#include <optional>
 #include <initializer_list>
 #include <cstdint>
 
@@ -81,20 +81,151 @@ struct IntegerConstant {
     std::int64_t value;
 };
 
+struct Segment {
+    std::int64_t id;
+    std::int64_t timestamp;
+};
+
+struct FrequencyCap {
+    std::string_view type;
+    std::uint32_t id;
+    std::string_view ns;
+    bool timestamp_defined;
+    std::int64_t timestamp;
+    std::uint32_t value;
+};
+
 /**
  * RAII wrapper for betree_event
  */
 class Event {
     std::unique_ptr<betree_event, decltype(&betree_free_event)> event_;
+    const betree* tree_;
+
+    [[nodiscard]] const char* variable_name(std::size_t index) const {
+        if (index >= event_->variable_count) {
+            throw BetreeException("Event variable index out of range");
+        }
+        return betree_get_variable_definition(const_cast<betree*>(tree_), index).name;
+    }
+
+    void set_variable(std::size_t index, betree_variable* variable) {
+        if (!variable) {
+            throw BetreeException("Failed to create event variable");
+        }
+        betree_set_variable(event_.get(), index, variable);
+    }
 
 public:
-    Event(betree_event* evt) : event_(evt, betree_free_event) {
+    Event(const betree* tree, betree_event* evt) : event_(evt, betree_free_event), tree_(tree) {
         if (!event_) {
             throw BetreeException("Invalid event");
         }
     }
 
     betree_event* get() const { return event_.get(); }
+
+    Event& clear(std::size_t index) {
+        if (index >= event_->variable_count) {
+            throw BetreeException("Event variable index out of range");
+        }
+        betree_set_variable(event_.get(), index, nullptr);
+        return *this;
+    }
+
+    Event& set_boolean(std::size_t index, bool value) {
+        set_variable(index, betree_make_boolean_variable(variable_name(index), value));
+        return *this;
+    }
+
+    Event& set_integer(std::size_t index, std::int64_t value) {
+        set_variable(index, betree_make_integer_variable(variable_name(index), value));
+        return *this;
+    }
+
+    Event& set_integer_enum(std::size_t index, std::int64_t value) {
+        return set_integer(index, value);
+    }
+
+    Event& set_float(std::size_t index, double value) {
+        set_variable(index, betree_make_float_variable(variable_name(index), value));
+        return *this;
+    }
+
+    Event& set_string(std::size_t index, std::string_view value) {
+        const auto value_str = detail::as_c_string(value);
+        set_variable(index, betree_make_string_variable(variable_name(index), value_str.c_str()));
+        return *this;
+    }
+
+    Event& set_integer_list(std::size_t index, const std::vector<std::int64_t>& values) {
+        betree_integer_list* list = betree_make_integer_list(values.size());
+        for (std::size_t i = 0; i < values.size(); ++i) {
+            betree_add_integer(list, i, values[i]);
+        }
+        set_variable(index, betree_make_integer_list_variable(variable_name(index), list));
+        return *this;
+    }
+
+    Event& set_integer_list(std::size_t index, std::initializer_list<std::int64_t> values) {
+        return set_integer_list(index, std::vector<std::int64_t>(values));
+    }
+
+    Event& set_string_list(std::size_t index, const std::vector<std::string_view>& values) {
+        betree_string_list* list = betree_make_string_list(values.size());
+        for (std::size_t i = 0; i < values.size(); ++i) {
+            const auto value_str = detail::as_c_string(values[i]);
+            betree_add_string(list, i, value_str.c_str());
+        }
+        set_variable(index, betree_make_string_list_variable(variable_name(index), list));
+        return *this;
+    }
+
+    Event& set_string_list(std::size_t index, std::initializer_list<std::string_view> values) {
+        return set_string_list(index, std::vector<std::string_view>(values));
+    }
+
+    Event& set_empty_list(std::size_t index) {
+        set_variable(index,
+            betree_make_integer_list_variable(variable_name(index), betree_make_integer_list(0)));
+        return *this;
+    }
+
+    Event& set_segments(std::size_t index, const std::vector<Segment>& values) {
+        betree_segments* segments = betree_make_segments(values.size());
+        for (std::size_t i = 0; i < values.size(); ++i) {
+            betree_add_segment(
+                segments, i, betree_make_segment(values[i].id, values[i].timestamp));
+        }
+        set_variable(index, betree_make_segments_variable(variable_name(index), segments));
+        return *this;
+    }
+
+    Event& set_segments(std::size_t index, std::initializer_list<Segment> values) {
+        return set_segments(index, std::vector<Segment>(values));
+    }
+
+    Event& set_frequency_caps(std::size_t index, const std::vector<FrequencyCap>& values) {
+        betree_frequency_caps* caps = betree_make_frequency_caps(values.size());
+        for (std::size_t i = 0; i < values.size(); ++i) {
+            const auto type_str = detail::as_c_string(values[i].type);
+            const auto ns_str = detail::as_c_string(values[i].ns);
+            betree_add_frequency_cap(caps,
+                i,
+                betree_make_frequency_cap(type_str.c_str(),
+                    values[i].id,
+                    ns_str.c_str(),
+                    values[i].timestamp_defined,
+                    values[i].timestamp,
+                    values[i].value));
+        }
+        set_variable(index, betree_make_frequency_caps_variable(variable_name(index), caps));
+        return *this;
+    }
+
+    Event& set_frequency_caps(std::size_t index, std::initializer_list<FrequencyCap> values) {
+        return set_frequency_caps(index, std::vector<FrequencyCap>(values));
+    }
 };
 
 /**
@@ -311,6 +442,10 @@ public:
         return insert_with_constants(id, expr, std::vector<IntegerConstant>(constants));
     }
 
+    Event make_event() const {
+        return Event(tree_.get(), betree_make_event(tree_.get()));
+    }
+
     /**
      * Search for matching subscriptions given an event JSON string
      *
@@ -326,6 +461,22 @@ public:
         SearchResult result;
         const auto event_json_str = detail::as_c_string(event_json);
         if (betree_search(tree_.get(), event_json_str.c_str(), rep.get())) {
+            result.matched_subs.assign(rep->subs, rep->subs + rep->matched);
+            result.evaluated = rep->evaluated;
+            result.memoized = rep->memoized;
+            result.shorted = rep->shorted;
+        }
+        return result;
+    }
+
+    SearchResult search(Event& event) const {
+        std::unique_ptr<report, decltype(&free_report)> rep(make_report(), free_report);
+        if (!rep) {
+            throw BetreeException("Failed to create report");
+        }
+
+        SearchResult result;
+        if (betree_search_with_event(tree_.get(), event.get(), rep.get())) {
             result.matched_subs.assign(rep->subs, rep->subs + rep->matched);
             result.evaluated = rep->evaluated;
             result.memoized = rep->memoized;
@@ -358,6 +509,27 @@ public:
             result.shorted = rep->shorted;
         }
         return result;
+    }
+
+    SearchResult search(Event& event, const std::vector<std::uint64_t>& ids) const {
+        std::unique_ptr<report, decltype(&free_report)> rep(make_report(), free_report);
+        if (!rep) {
+            throw BetreeException("Failed to create report");
+        }
+
+        SearchResult result;
+        if (betree_search_with_event_ids(
+                tree_.get(), event.get(), rep.get(), ids.data(), ids.size())) {
+            result.matched_subs.assign(rep->subs, rep->subs + rep->matched);
+            result.evaluated = rep->evaluated;
+            result.memoized = rep->memoized;
+            result.shorted = rep->shorted;
+        }
+        return result;
+    }
+
+    bool exists(Event& event) const {
+        return betree_exists_with_event(tree_.get(), event.get());
     }
 
     /**

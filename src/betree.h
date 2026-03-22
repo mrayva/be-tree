@@ -47,6 +47,7 @@ struct betree_constant;
 struct betree_variable;
 
 struct betree_event {
+    const struct config* config;
     size_t variable_count;
     struct betree_variable** variables;
 };
@@ -164,8 +165,16 @@ bool betree_insert(struct betree* tree, betree_sub_t id, const char* expr);
 bool betree_insert_with_constants(struct betree* tree, betree_sub_t id, size_t constant_count, const struct betree_constant** constants, const char* expr);
 
 bool betree_search(const struct betree* tree, const char* event_str, struct report* report);
+/*
+ * The ids filter is expected to be sorted in ascending order and treated as a set.
+ * Unsorted or duplicate-heavy filters are not a guaranteed contract.
+ */
 bool betree_search_ids(const struct betree* tree, const char* event_str, struct report* report, const uint64_t* ids, size_t sz);
 bool betree_search_with_event(const struct betree* betree, struct betree_event* event, struct report* report);
+/*
+ * The ids filter is expected to be sorted in ascending order and treated as a set.
+ * Unsorted or duplicate-heavy filters are not a guaranteed contract.
+ */
 bool betree_search_with_event_ids(const struct betree* betree, struct betree_event* event, struct report* report, const uint64_t* ids, size_t sz);
 
 bool betree_exists(const struct betree* tree, const char* event_str);

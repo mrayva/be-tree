@@ -973,6 +973,150 @@ int test_search_with_event_err_parity()
     return 0;
 }
 
+int test_search_with_event_err_special_domain_parity()
+{
+    struct betree_err* tree = betree_make_err();
+
+    const struct betree_constant* constants[] = {
+        betree_make_integer_constant("flight_id", 10),
+    };
+
+    add_attr_domain_segments(tree->config, "seg", false);
+    add_attr_domain_frequency(tree->config, "frequency_caps", false);
+    add_attr_domain_i(tree->config, "now", false);
+
+    const char* exprs[] = {
+        "segment_within(seg, 1, 20)",
+        "within_frequency_cap(\"flight\", \"ns\", 100, 0)",
+        "segment_within(seg, 1, 20) and within_frequency_cap(\"flight\", \"ns\", 100, 0)",
+    };
+    betree_bulk_insert_with_constants(tree, exprs, 3, constants, 1);
+    betree_make_sub_ids(tree);
+    betree_free_constant((struct betree_constant*)constants[0]);
+
+    struct report_err* json_report = make_report_err(tree);
+    const char* event_json
+        = "{\"now\": 0, \"seg\": [[1, 10000000]], "
+          "\"frequency_caps\": [[\"flight\", 10, \"ns\", 0, 0]]}";
+    mu_assert(betree_search_err(tree, event_json, json_report), "");
+
+    struct betree_event* event = betree_make_event_err(tree);
+    struct betree_segments* seg = betree_make_segments(1);
+    betree_add_segment(seg, 0, betree_make_segment(1, 10000000));
+    betree_set_variable(event, 0, betree_make_segments_variable("seg", seg));
+
+    struct betree_frequency_caps* frequency_caps = betree_make_frequency_caps(1);
+    betree_add_frequency_cap(
+        frequency_caps, 0, betree_make_frequency_cap("flight", 10, "ns", false, 0, 0));
+    betree_set_variable(
+        event, 1, betree_make_frequency_caps_variable("frequency_caps", frequency_caps));
+    betree_set_variable(event, 2, betree_make_integer_variable("now", 0));
+
+    struct report_err* event_report = make_report_err(tree);
+    mu_assert(betree_search_with_event_err(tree, event, event_report), "");
+
+    const uint64_t expected[] = {1, 2, 3};
+    mu_assert(assert_report_err_id_set(json_report, expected, 3) == 0, "");
+    mu_assert(assert_report_err_id_set(event_report, expected, 3) == 0, "");
+
+    const uint64_t ids[] = {2, 3};
+    struct report_err* json_ids_report = make_report_err(tree);
+    struct report_err* event_ids_report = make_report_err(tree);
+    mu_assert(betree_search_ids_err(tree, event_json, json_ids_report, ids, 2), "");
+    mu_assert(betree_search_with_event_ids_err(tree, event, event_ids_report, ids, 2), "");
+
+    const uint64_t expected_ids[] = {2, 3};
+    mu_assert(assert_report_err_id_set(json_ids_report, expected_ids, 2) == 0, "");
+    mu_assert(assert_report_err_id_set(event_ids_report, expected_ids, 2) == 0, "");
+
+    free_report_err(event_ids_report);
+    free_report_err(json_ids_report);
+    free_report_err(event_report);
+    betree_free_event(event);
+    free_report_err(json_report);
+    betree_free_err(tree);
+    return 0;
+}
+
+int test_search_with_event_err_conversion_invariants()
+{
+    struct betree_err* tree = betree_make_err();
+
+    add_attr_domain_ie(tree->config, "ie", false);
+    add_attr_domain_sl(tree->config, "sl", false);
+    add_attr_domain_segments(tree->config, "seg", false);
+    add_attr_domain_frequency(tree->config, "frequency_caps", false);
+
+    const char* exprs[] = { "ie = 2", "sl is empty", "seg is empty", "frequency_caps is empty" };
+    betree_bulk_insert(tree, exprs, 4);
+    betree_make_sub_ids(tree);
+
+    struct betree_event* event = betree_make_event_err(tree);
+    betree_set_variable(event, 0, betree_make_integer_variable("ie", 2));
+    betree_set_variable(event, 1, betree_make_integer_list_variable("sl", betree_make_integer_list(0)));
+    betree_set_variable(event, 2, betree_make_integer_list_variable("seg", betree_make_integer_list(0)));
+    betree_set_variable(
+        event, 3, betree_make_integer_list_variable("frequency_caps", betree_make_integer_list(0)));
+
+    struct report_err* report = make_report_err(tree);
+    mu_assert(betree_search_with_event_err(tree, event, report), "");
+    {
+        const uint64_t expected[] = {1, 2, 3, 4};
+        mu_assert(assert_report_err_id_set(report, expected, 4) == 0, "");
+    }
+
+    free_report_err(report);
+    betree_free_event(event);
+    betree_free_err(tree);
+    return 0;
+}
+
+int test_search_with_event_err_reuse_after_normalization()
+{
+    struct betree_err* tree = betree_make_err();
+
+    add_attr_domain_ie(tree->config, "ie", false);
+    add_attr_domain_sl(tree->config, "sl", false);
+    add_attr_domain_segments(tree->config, "seg", false);
+    add_attr_domain_frequency(tree->config, "frequency_caps", false);
+
+    const char* exprs[] = { "ie = 2", "sl is empty", "seg is empty", "frequency_caps is empty" };
+    betree_bulk_insert(tree, exprs, 4);
+    betree_make_sub_ids(tree);
+
+    struct betree_event* event = betree_make_event_err(tree);
+    betree_set_variable(event, 0, betree_make_integer_variable("ie", 2));
+    betree_set_variable(event, 1, betree_make_integer_list_variable("sl", betree_make_integer_list(0)));
+    betree_set_variable(event, 2, betree_make_integer_list_variable("seg", betree_make_integer_list(0)));
+    betree_set_variable(
+        event, 3, betree_make_integer_list_variable("frequency_caps", betree_make_integer_list(0)));
+
+    const uint64_t expected[] = {1, 2, 3, 4};
+    const uint64_t ids[] = {1, 3, 4};
+
+    struct report_err* first_report = make_report_err(tree);
+    mu_assert(betree_search_with_event_err(tree, event, first_report), "");
+    mu_assert(assert_report_err_id_set(first_report, expected, 4) == 0, "");
+
+    struct report_err* second_report = make_report_err(tree);
+    mu_assert(betree_search_with_event_err(tree, event, second_report), "");
+    mu_assert(assert_report_err_id_set(second_report, expected, 4) == 0, "");
+
+    struct report_err* ids_report = make_report_err(tree);
+    mu_assert(betree_search_with_event_ids_err(tree, event, ids_report, ids, 3), "");
+    {
+        const uint64_t expected_ids[] = {1, 3, 4};
+        mu_assert(assert_report_err_id_set(ids_report, expected_ids, 3) == 0, "");
+    }
+
+    free_report_err(ids_report);
+    free_report_err(second_report);
+    free_report_err(first_report);
+    betree_free_event(event);
+    betree_free_err(tree);
+    return 0;
+}
+
 int test_search_with_event_ids_err_invalid_event_reason()
 {
     struct betree_err* tree = betree_make_err();
@@ -1021,6 +1165,101 @@ int test_search_with_event_ids_err_invalid_event_reason()
 
     free_report_err(ids_report);
     betree_free_event(invalid_event_ids);
+    betree_free_err(tree);
+    return 0;
+}
+
+int test_search_with_event_err_type_mismatch_reason()
+{
+    struct betree_err* tree = betree_make_err();
+
+    add_attr_domain_bounded_i(tree->config, "age", false, 0, 120);
+    add_attr_domain_s(tree->config, "country", false);
+
+    const char* exprs[] = { "age >= 21", "country = \"USA\"", "age >= 30 and country = \"USA\"" };
+    betree_bulk_insert(tree, exprs, 3);
+    betree_make_sub_ids(tree);
+
+    struct betree_event* invalid_event = betree_make_event_err(tree);
+    betree_set_variable(invalid_event, 0, betree_make_string_variable("age", "twenty five"));
+    betree_set_variable(invalid_event, 1, betree_make_string_variable("country", "USA"));
+
+    struct report_err* report = make_report_err(tree);
+    mu_assert(!betree_search_with_event_err(tree, invalid_event, report), "searchFailsValidation");
+    mu_assert(report->matched == 0, "noMatches");
+
+    betree_var_t invalid_reason_id
+        = ADDITIONAL_REASON(tree->config->attr_domain_count, REASON_INVALID_EVENT);
+    dynamic_array_t* invalid_reason = betree_reason_map_get(report->reason_sub_id_list, invalid_reason_id);
+    mu_assert(invalid_reason != NULL, "invalidEventReason");
+    mu_assert(invalid_reason->size == 3, "allSubsTagged");
+
+    free_report_err(report);
+    betree_free_event(invalid_event);
+
+    struct betree_event* invalid_event_ids = betree_make_event_err(tree);
+    betree_set_variable(invalid_event_ids, 0, betree_make_string_variable("age", "twenty five"));
+    betree_set_variable(invalid_event_ids, 1, betree_make_string_variable("country", "USA"));
+
+    const uint64_t ids[] = {1, 3};
+    struct report_err* ids_report = make_report_err(tree);
+    mu_assert(!betree_search_with_event_ids_err(tree, invalid_event_ids, ids_report, ids, 2),
+        "searchIdsFailsValidation");
+    mu_assert(ids_report->matched == 0, "noMatchesIds");
+
+    dynamic_array_t* invalid_reason_ids
+        = betree_reason_map_get(ids_report->reason_sub_id_list, invalid_reason_id);
+    mu_assert(invalid_reason_ids != NULL, "invalidEventReasonIds");
+    mu_assert(invalid_reason_ids->size == 2, "filteredSubsTagged");
+
+    free_report_err(ids_report);
+    betree_free_event(invalid_event_ids);
+    betree_free_err(tree);
+    return 0;
+}
+
+int test_search_with_event_err_special_domain_type_mismatch_reason()
+{
+    struct betree_err* tree = betree_make_err();
+
+    const struct betree_constant* constants[] = {
+        betree_make_integer_constant("flight_id", 10),
+    };
+
+    add_attr_domain_segments(tree->config, "seg", false);
+    add_attr_domain_frequency(tree->config, "frequency_caps", false);
+    add_attr_domain_i(tree->config, "now", false);
+
+    const char* exprs[] = {
+        "segment_within(seg, 1, 20)",
+        "within_frequency_cap(\"flight\", \"ns\", 100, 0)",
+    };
+    betree_bulk_insert_with_constants(tree, exprs, 2, constants, 1);
+    betree_make_sub_ids(tree);
+    betree_free_constant((struct betree_constant*)constants[0]);
+
+    struct betree_event* invalid_event = betree_make_event_err(tree);
+    struct betree_integer_list* wrong_seg = betree_make_integer_list(1);
+    betree_add_integer(wrong_seg, 0, 1);
+    betree_set_variable(invalid_event, 0, betree_make_integer_list_variable("seg", wrong_seg));
+    struct betree_string_list* wrong_caps = betree_make_string_list(1);
+    betree_add_string(wrong_caps, 0, "bad");
+    betree_set_variable(
+        invalid_event, 1, betree_make_string_list_variable("frequency_caps", wrong_caps));
+    betree_set_variable(invalid_event, 2, betree_make_integer_variable("now", 0));
+
+    struct report_err* report = make_report_err(tree);
+    mu_assert(!betree_search_with_event_err(tree, invalid_event, report), "searchFailsValidation");
+    mu_assert(report->matched == 0, "noMatches");
+
+    betree_var_t invalid_reason_id
+        = ADDITIONAL_REASON(tree->config->attr_domain_count, REASON_INVALID_EVENT);
+    dynamic_array_t* invalid_reason = betree_reason_map_get(report->reason_sub_id_list, invalid_reason_id);
+    mu_assert(invalid_reason != NULL, "invalidEventReason");
+    mu_assert(invalid_reason->size == 2, "allSubsTagged");
+
+    free_report_err(report);
+    betree_free_event(invalid_event);
     betree_free_err(tree);
     return 0;
 }
@@ -1120,7 +1359,12 @@ int all_tests()
     mu_run_test(test_disallow_undefined_reason_invalid_event);
     mu_run_test(test_search_err_match_set_parity);
     mu_run_test(test_search_with_event_err_parity);
+    mu_run_test(test_search_with_event_err_special_domain_parity);
+    mu_run_test(test_search_with_event_err_conversion_invariants);
+    mu_run_test(test_search_with_event_err_reuse_after_normalization);
     mu_run_test(test_search_with_event_ids_err_invalid_event_reason);
+    mu_run_test(test_search_with_event_err_type_mismatch_reason);
+    mu_run_test(test_search_with_event_err_special_domain_type_mismatch_reason);
 
     return 0;
 }

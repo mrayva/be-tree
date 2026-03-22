@@ -572,6 +572,7 @@ static bool betree_search_with_event_filled(const struct betree* betree, struct 
         = make_environment(betree->config->attr_domain_count, event);
     if(validate_variables(betree->config, variables) == false) {
         std::fprintf(stderr, "Failed to validate event\n");
+        bfree(variables);
         return false;
     }
     // print_betree(betree);
@@ -586,6 +587,7 @@ bool betree_search_with_event_filled_ids(const struct betree* betree, struct bet
         = make_environment(betree->config->attr_domain_count, event);
     if(validate_variables(betree->config, variables) == false) {
         std::fprintf(stderr, "Failed to validate event\n");
+        bfree(variables);
         return false;
     }
     return betree_search_with_preds_ids(betree->config, variables, betree->cnode, report, ids, sz);
@@ -596,6 +598,11 @@ bool betree_search_with_event_filled_ids(const struct betree* betree, struct bet
 static bool betree_exists_with_event_filled(const struct betree* betree, struct betree_event* event)
 {
     const struct betree_variable** variables = make_environment(betree->config->attr_domain_count, event);
+    if(validate_variables(betree->config, variables) == false) {
+        std::fprintf(stderr, "Failed to validate event\n");
+        bfree(variables);
+        return false;
+    }
     return betree_exists_with_preds(betree->config, variables, betree->cnode);
 }
 
@@ -1097,6 +1104,7 @@ void betree_free_frequency_caps(struct betree_frequency_caps* value)
 struct betree_event* betree_make_event(const struct betree* betree)
 {
     auto event = static_cast<struct betree_event*>(bmalloc(sizeof(struct betree_event)));
+    event->config = betree->config;
     event->variable_count = betree->config->attr_domain_count;
     event->variables = static_cast<struct betree_variable**>(bcalloc(event->variable_count * sizeof(struct betree_variable*)));
     return event;
@@ -1104,6 +1112,12 @@ struct betree_event* betree_make_event(const struct betree* betree)
 
 void betree_set_variable(struct betree_event* event, size_t index, struct betree_variable* variable)
 {
+    if(variable != nullptr && event->config != nullptr && index < event->variable_count) {
+        const struct attr_domain* domain = event->config->attr_domains[index];
+        bfree((char*)variable->attr_var.attr);
+        variable->attr_var.attr = bstrdup(domain->attr_var.attr);
+        variable->attr_var.var = domain->attr_var.var;
+    }
     event->variables[index] = variable;
 }
 

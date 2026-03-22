@@ -105,6 +105,50 @@ At the end of this, we return a report with all the subscriptions id found to be
 
 While matching, we track the last reason (variable name) on an expression basis. The `_err` API variants return a report containing the last reasons corresponding to eliminated ids.
 
+## C++ Wrapper
+
+The repository includes a C++ wrapper in `include/betree_cpp.hpp`.
+
+Basic JSON-based usage:
+
+```cpp
+#include <betree_cpp.hpp>
+
+be::Tree tree;
+tree.add_integer("age", false, 0, 120)
+    .add_string("country", false, 16)
+    .insert(1, "age >= 21 and country = \"USA\"");
+
+auto result = tree.search(R"({"age": 25, "country": "USA"})");
+```
+
+The wrapper also supports structured events as a first-class API:
+
+```cpp
+#include <betree_cpp.hpp>
+
+be::Tree tree;
+tree.add_boolean("flag", false)
+    .add_integer("age", false, 0, 120)
+    .add_string("country", false, 16);
+
+tree.insert(1, "flag and age >= 21 and country = \"USA\"");
+
+auto event = tree.make_event();
+event.set_boolean(0, true)
+     .set_integer(1, 25)
+     .set_string(2, "USA");
+
+auto result = tree.search(event);
+bool any = tree.exists(event);
+```
+
+The event API is slot-based, like the C API:
+
+* setters take the schema index, not the variable name
+* `Tree::variable_definition(index)` can be used to inspect configured slots
+* filtered event searches expect sorted id filters
+
 ## Possible changes
 * For cdir splitting, there was a bug in the original implementation. I went with searching both lchild AND rchild but we could go with middle + 1.
 

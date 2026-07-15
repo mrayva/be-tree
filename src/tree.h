@@ -144,7 +144,7 @@ void free_cnode(struct cnode* cnode);
 void fill_pred(struct betree_sub* sub, const struct ast_node* expr);
 struct betree_sub* make_sub(struct config* config, betree_sub_t id, struct ast_node* expr);
 struct betree_event* make_empty_event(void);
-void event_to_string(const struct betree_event* event, char* buffer);
+bool event_to_string(const struct betree_event* event, char* buffer, size_t capacity);
 
 struct betree_variable* make_pred(const char* attr, betree_var_t variable_id, struct value value);
 void add_variable(struct betree_variable* variable, struct betree_event* event);

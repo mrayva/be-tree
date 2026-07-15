@@ -400,11 +400,20 @@ int test_event_to_string_special_values()
         &event);
 
     char buffer[256];
-    event_to_string(event, buffer);
+    mu_assert(event_to_string(event, buffer, sizeof(buffer)), "special values fit");
     mu_assert(strcmp(buffer,
                   "segments = ([1, 2], [3, 4]), caps = ([[\"flight\", 1, \"ns\"], 2, 3])")
             == 0,
         "special values stringify without aborting");
+
+    char small_buffer[16];
+    mu_assert(!event_to_string(event, small_buffer, sizeof(small_buffer)), "truncation reported");
+    mu_assert(small_buffer[sizeof(small_buffer) - 1] == '\0', "truncated output terminated");
+
+    buffer[0] = 'x';
+    mu_assert(!event_to_string(NULL, buffer, sizeof(buffer)), "null event rejected");
+    mu_assert(buffer[0] == '\0', "null event clears output");
+    mu_assert(!event_to_string(event, buffer, 0), "zero capacity rejected");
 
     free_event(event);
     return 0;

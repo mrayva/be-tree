@@ -1,4 +1,5 @@
 #include <cctype>
+#include <cstdarg>
 #include <cfloat>
 #include <cinttypes>
 #include <cmath>
@@ -1657,74 +1658,136 @@ betree_var_t try_get_id_for_attr(const struct config* config, const char* attr)
 
 } // extern "C"
 
+static bool append_event_text(
+    char* buffer, std::size_t capacity, std::size_t* length, const char* format, ...)
+{
+    if(*length >= capacity) {
+        return false;
+    }
+
+    va_list args;
+    va_start(args, format);
+    const int written = std::vsnprintf(buffer + *length, capacity - *length, format, args);
+    va_end(args);
+
+    if(written < 0) {
+        buffer[*length] = '\0';
+        return false;
+    }
+    if(static_cast<std::size_t>(written) >= capacity - *length) {
+        *length = capacity - 1;
+        return false;
+    }
+
+    *length += static_cast<std::size_t>(written);
+    return true;
+}
+
 extern "C" {
 
-void event_to_string(const struct betree_event* event, char* buffer)
+bool event_to_string(
+    const struct betree_event* event, char* buffer, std::size_t capacity)
 {
+    if(buffer == nullptr || capacity == 0) {
+        return false;
+    }
+    buffer[0] = '\0';
+    if(event == nullptr) {
+        return false;
+    }
+
     std::size_t length = 0;
     for(std::size_t i = 0; i < event->variable_count; i++) {
         const struct betree_variable* pred = event->variables[i];
-        if(i != 0) {
-            length += sprintf(buffer + length, ", ");
+        if(i != 0 && !append_event_text(buffer, capacity, &length, ", ")) {
+            return false;
         }
         const char* attr = pred->attr_var.attr;
         switch(pred->value.value_type) {
             case(BETREE_INTEGER): {
-                length
-                    += sprintf(buffer + length, "%s = %" PRIu64, attr, pred->value.integer_value);
+                if(!append_event_text(buffer, capacity, &length,
+                       "%s = %" PRId64, attr, pred->value.integer_value)) {
+                    return false;
+                }
                 break;
             }
             case(BETREE_FLOAT): {
-                length += sprintf(buffer + length, "%s = %.2f", attr, pred->value.float_value);
+                if(!append_event_text(
+                       buffer, capacity, &length, "%s = %.2f", attr, pred->value.float_value)) {
+                    return false;
+                }
                 break;
             }
             case(BETREE_BOOLEAN): {
                 const char* value = pred->value.boolean_value ? "true" : "false";
-                length += sprintf(buffer + length, "%s = %s", attr, value);
+                if(!append_event_text(buffer, capacity, &length, "%s = %s", attr, value)) {
+                    return false;
+                }
                 break;
             }
             case(BETREE_STRING): {
-                length += sprintf(
-                    buffer + length, "%s = \"%s\"", attr, pred->value.string_value.string);
+                if(!append_event_text(buffer, capacity, &length,
+                       "%s = \"%s\"", attr, pred->value.string_value.string)) {
+                    return false;
+                }
                 break;
             }
             case(BETREE_INTEGER_ENUM): {
-                length += sprintf(
-                    buffer + length, "%s = %ld", attr, pred->value.integer_enum_value.integer);
+                if(!append_event_text(buffer, capacity, &length,
+                       "%s = %" PRId64, attr, pred->value.integer_enum_value.integer)) {
+                    return false;
+                }
                 break;
             }
             case(BETREE_INTEGER_LIST): {
-                const char* integer_list
+                char* integer_list
                     = integer_list_value_to_string(pred->value.integer_list_value);
-                length += sprintf(buffer + length, "%s = (%s)", attr, integer_list);
-                bfree((char*)integer_list);
+                const bool appended = append_event_text(
+                    buffer, capacity, &length, "%s = (%s)", attr,
+                    integer_list == nullptr ? "" : integer_list);
+                bfree(integer_list);
+                if(!appended) {
+                    return false;
+                }
                 break;
             }
             case(BETREE_SEGMENTS): {
-                const char* segments = segments_value_to_string(pred->value.segments_value);
-                length += sprintf(buffer + length, "%s = (%s)", attr, segments);
-                bfree((char*)segments);
+                char* segments = segments_value_to_string(pred->value.segments_value);
+                const bool appended = append_event_text(buffer, capacity, &length,
+                    "%s = (%s)", attr, segments == nullptr ? "" : segments);
+                bfree(segments);
+                if(!appended) {
+                    return false;
+                }
                 break;
             }
             case(BETREE_FREQUENCY_CAPS): {
-                const char* frequency_caps
+                char* frequency_caps
                     = frequency_caps_value_to_string(pred->value.frequency_caps_value);
-                length += sprintf(buffer + length, "%s = (%s)", attr, frequency_caps);
-                bfree((char*)frequency_caps);
+                const bool appended = append_event_text(buffer, capacity, &length,
+                    "%s = (%s)", attr, frequency_caps == nullptr ? "" : frequency_caps);
+                bfree(frequency_caps);
+                if(!appended) {
+                    return false;
+                }
                 break;
             }
             case(BETREE_STRING_LIST): {
-                const char* string_list
+                char* string_list
                     = string_list_value_to_string(pred->value.string_list_value);
-                length += sprintf(buffer + length, "%s = (%s)", attr, string_list);
-                bfree((char*)string_list);
+                const bool appended = append_event_text(buffer, capacity, &length,
+                    "%s = (%s)", attr, string_list == nullptr ? "" : string_list);
+                bfree(string_list);
+                if(!appended) {
+                    return false;
+                }
                 break;
             }
             default:
-                std::abort();
+                return false;
         }
     }
-    buffer[length] = '\0';
+    return true;
 }
 
 struct memoize make_memoize(std::size_t pred_count)

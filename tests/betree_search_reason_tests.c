@@ -1265,6 +1265,42 @@ int test_search_with_event_err_special_domain_type_mismatch_reason()
 }
 
 
+int test_malformed_json_invalid_event_reason()
+{
+    struct betree_err* tree = betree_make_err();
+    add_attr_domain_bounded_i(tree->config, "age", false, 0, 120);
+    mu_assert(betree_insert_err(tree, 1, "age >= 21"), "insert");
+    mu_assert(betree_insert_err(tree, 2, "age < 21"), "insert");
+
+    const char* invalid_events[] = {
+        "{",
+        "{\"age\":}",
+        "{\"age\":25} trailing",
+    };
+    const uint64_t ids[] = {2};
+    const betree_var_t reason_id
+        = ADDITIONAL_REASON(tree->config->attr_domain_count, REASON_INVALID_EVENT);
+
+    for(size_t i = 0; i < sizeof(invalid_events) / sizeof(invalid_events[0]); i++) {
+        struct report_err* report = make_report_err(tree);
+        mu_assert(!betree_search_err(tree, invalid_events[i], report), "malformedSearchRejected");
+        dynamic_array_t* reason = betree_reason_map_get(report->reason_sub_id_list, reason_id);
+        mu_assert(reason != NULL && reason->size == 2, "allSubsTaggedInvalidEvent");
+        free_report_err(report);
+
+        struct report_err* ids_report = make_report_err(tree);
+        mu_assert(!betree_search_ids_err(tree, invalid_events[i], ids_report, ids, 1),
+            "malformedFilteredSearchRejected");
+        dynamic_array_t* ids_reason
+            = betree_reason_map_get(ids_report->reason_sub_id_list, reason_id);
+        mu_assert(ids_reason != NULL && ids_reason->size == 1, "filteredSubTaggedInvalidEvent");
+        free_report_err(ids_report);
+    }
+
+    betree_free_err(tree);
+    return 0;
+}
+
 void make_attr_domains(struct betree_err* tree, size_t config)
 {
     make_attr_domains_undefined(tree, config, 0);
@@ -1365,6 +1401,7 @@ int all_tests()
     mu_run_test(test_search_with_event_ids_err_invalid_event_reason);
     mu_run_test(test_search_with_event_err_type_mismatch_reason);
     mu_run_test(test_search_with_event_err_special_domain_type_mismatch_reason);
+    mu_run_test(test_malformed_json_invalid_event_reason);
 
     return 0;
 }

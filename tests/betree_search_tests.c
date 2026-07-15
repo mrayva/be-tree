@@ -803,6 +803,39 @@ int test_search_with_event_reuse_after_normalization()
     return 0;
 }
 
+int test_malformed_json_rejection()
+{
+    struct betree* tree = betree_make();
+    add_attr_domain_bounded_i(tree->config, "age", false, 0, 120);
+    mu_assert(betree_insert(tree, 1, "age >= 21"), "");
+
+    const char* invalid_events[] = {
+        "{",
+        "{\"age\":}",
+        "{\"age\":25} trailing",
+    };
+    const uint64_t ids[] = {1};
+
+    for(size_t i = 0; i < sizeof(invalid_events) / sizeof(invalid_events[0]); i++) {
+        struct report* report = make_report();
+        mu_assert(!betree_search(tree, invalid_events[i], report), "malformedSearchRejected");
+        mu_assert(report->matched == 0 && report->evaluated == 0, "emptyMalformedReport");
+        free_report(report);
+
+        struct report* ids_report = make_report();
+        mu_assert(!betree_search_ids(tree, invalid_events[i], ids_report, ids, 1),
+            "malformedFilteredSearchRejected");
+        mu_assert(ids_report->matched == 0 && ids_report->evaluated == 0,
+            "emptyMalformedFilteredReport");
+        free_report(ids_report);
+
+        mu_assert(!betree_exists(tree, invalid_events[i]), "malformedExistsRejected");
+    }
+
+    betree_free(tree);
+    return 0;
+}
+
 int all_tests()
 {
     mu_run_test(test_search);
@@ -830,6 +863,7 @@ int all_tests()
     mu_run_test(test_search_with_event_special_domain_type_mismatch_rejection);
     mu_run_test(test_search_with_event_conversion_invariants);
     mu_run_test(test_search_with_event_reuse_after_normalization);
+    mu_run_test(test_malformed_json_rejection);
     return 0;
 }
 

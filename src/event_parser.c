@@ -1702,6 +1702,12 @@ yyreturnlab:
 int event_parse(const char *text, struct betree_event** event)
 {
     // zzdebug = 1;
+
+    if(text == NULL || event == NULL) {
+        return -1;
+    }
+    root = NULL;
+    *event = NULL;
     
     // Parse using Bison.
     yyscan_t scanner;

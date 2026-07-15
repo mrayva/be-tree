@@ -1327,10 +1327,9 @@ bool betree_search_with_preds_ids_err(const struct config* config,
 struct betree_event* make_event_from_string_err(
     const struct betree_err* betree, const char* event_str)
 {
-    struct betree_event* event;
-    if(likely(event_parse(event_str, &event))) {
-        std::fprintf(stderr, "Failed to parse event: %s\n", event_str);
-        std::abort();
+    struct betree_event* event = nullptr;
+    if(event_parse(event_str, &event) != 0) {
+        return nullptr;
     }
     fill_event(betree->config, event);
     sort_event_lists(event);

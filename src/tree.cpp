@@ -1897,10 +1897,9 @@ void sort_event_lists(struct betree_event* event)
 
 struct betree_event* make_event_from_string(const struct betree* betree, const char* event_str)
 {
-    struct betree_event* event;
-    if(likely(event_parse(event_str, &event))) {
-        std::fprintf(stderr, "Failed to parse event: %s\n", event_str);
-        std::abort();
+    struct betree_event* event = nullptr;
+    if(event_parse(event_str, &event) != 0) {
+        return nullptr;
     }
     fill_event(betree->config, event);
     sort_event_lists(event);

@@ -71,6 +71,15 @@ void verify_wrapper_rejections() {
     const auto invalid_event_ids = tree.search("{\"age\": \"bad\", \"country\": \"USA\"}", ids);
     require(invalid_event_ids.empty(),
             "wrapper filtered search did not return empty result on invalid event");
+
+    const auto malformed_event = tree.search("{\"age\": 5");
+    require(malformed_event.empty(),
+            "wrapper search accepted malformed JSON");
+    require(malformed_event.evaluated == 0 && malformed_event.memoized == 0
+                && malformed_event.shorted == 0,
+            "wrapper malformed search returned nonzero statistics");
+    require(tree.search("{\"age\": 5} trailing", ids).empty(),
+            "wrapper filtered search accepted trailing JSON tokens");
 }
 
 void verify_wrapper_event_api() {

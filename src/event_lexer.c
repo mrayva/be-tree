@@ -1107,7 +1107,7 @@ SAVE_FLOAT; return EVENT_FLOAT;
 case 16:
 YY_RULE_SETUP
 #line 50 "src/event_lexer.l"
-printf("Unknown token! (%s)\n", yytext); yyterminate();
+return (unsigned char)yytext[0];
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
@@ -2303,5 +2303,4 @@ void yyfree (void * ptr , yyscan_t yyscanner)
 #elif defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif
-
 

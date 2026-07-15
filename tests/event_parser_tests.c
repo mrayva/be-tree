@@ -438,6 +438,14 @@ int test_invalid_payloads()
     mu_assert(event_parse("{\"a\": 1,}", &event) != 0, "trailing comma");
     mu_assert(event == NULL, "no event on trailing comma");
 
+    event = NULL;
+    mu_assert(event_parse("{\"a\": 1} trailing", &event) != 0, "trailing tokens");
+    mu_assert(event == NULL, "no event on trailing tokens");
+
+    event = NULL;
+    mu_assert(event_parse(NULL, &event) != 0, "null input");
+    mu_assert(event == NULL, "no event on null input");
+
     return 0;
 }
 

@@ -611,6 +611,9 @@ extern "C" {
 bool betree_exists(const struct betree* tree, const char* event_str)
 {
     struct betree_event* event = make_event_from_string(tree, event_str);
+    if(event == nullptr) {
+        return false;
+    }
     bool result = betree_exists_with_event_filled(tree, event);
     free_event(event);
     return result;
@@ -629,6 +632,9 @@ bool betree_exists_with_event(const struct betree* betree, struct betree_event* 
 bool betree_search(const struct betree* tree, const char* event_str, struct report* report)
 {
     struct betree_event* event = make_event_from_string(tree, event_str);
+    if(event == nullptr) {
+        return false;
+    }
     bool result = betree_search_with_event_filled(tree, event, report);
     free_event(event);
     return result;
@@ -637,6 +643,9 @@ bool betree_search(const struct betree* tree, const char* event_str, struct repo
 bool betree_search_ids(const struct betree* tree, const char* event_str, struct report* report, const uint64_t* ids, size_t sz)
 {
     struct betree_event* event = make_event_from_string(tree, event_str);
+    if(event == nullptr) {
+        return false;
+    }
     bool result = betree_search_with_event_filled_ids(tree, event, report, ids, sz);
     free_event(event);
     return result;

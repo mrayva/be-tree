@@ -199,6 +199,12 @@ frequency_value     : EVENT_LSQUARE EVENT_STRING EVENT_COMMA integer EVENT_COMMA
 int event_parse(const char *text, struct betree_event** event)
 {
     // zzdebug = 1;
+
+    if(text == NULL || event == NULL) {
+        return -1;
+    }
+    root = NULL;
+    *event = NULL;
     
     // Parse using Bison.
     yyscan_t scanner;

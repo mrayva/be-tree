@@ -122,6 +122,8 @@ tree.add_integer("age", false, 0, 120)
 auto result = tree.search(R"({"age": 25, "country": "USA"})");
 ```
 
+Malformed event JSON is rejected as a normal search failure: C search functions return `false`, while the C++ wrapper returns an empty, zero-statistics `SearchResult`.
+
 The wrapper also supports structured events as a first-class API:
 
 ```cpp

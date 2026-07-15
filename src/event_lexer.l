@@ -47,7 +47,7 @@
 [0-9]+              SAVE_INTEGER; return EVENT_INTEGER;
 [0-9]+\.[0-9]*      SAVE_FLOAT; return EVENT_FLOAT;
 
-.                   printf("Unknown token! (%s)\n", yytext); yyterminate();
+.                   return (unsigned char)yytext[0];
 
 %%
 
@@ -56,4 +56,3 @@
 #elif defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif
-

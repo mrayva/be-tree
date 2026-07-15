@@ -196,6 +196,8 @@ The wrapper smoke test now covers both wrapper surfaces:
 - JSON-based `Tree::search(...)`
 - structured-event usage through `Tree::make_event()`, typed `Event::set_*` methods, `Tree::search(event, ...)`, and `Tree::exists(event)`
 
+Malformed JSON is recoverable: normal searches return `false`, wrapper searches return an empty result with zeroed statistics, and `_err` searches report `invalid_event`.
+
 Structured events are schema-bound. Search rejects an event created by a different tree, and the creating tree must outlive the event.
 
 The parser suite also locks down the empty-list contract used by the matcher:

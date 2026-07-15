@@ -7,6 +7,9 @@ project(be-tree
     DESCRIPTION "Binary Expression Tree library with a C API and C++20 core"
 )
 
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
 # vcpkg integration guidance
 # To use vcpkg, set CMAKE_TOOLCHAIN_FILE to point to vcpkg's toolchain file:
 # cmake -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake ..
@@ -69,6 +72,7 @@ endfunction()
 
 # Source directory
 add_subdirectory(src)
+add_library(betree::betree ALIAS betree)
 
 # Examples directory (optional)
 add_subdirectory(examples)
@@ -139,6 +143,20 @@ foreach(test_name IN LISTS BETREE_UNIT_TESTS)
     add_betree_c_test(${test_name})
 endforeach()
 
+add_test(NAME package_consumer
+    COMMAND ${CMAKE_COMMAND}
+        -DBETREE_SOURCE_DIR=${CMAKE_SOURCE_DIR}
+        -DBETREE_BINARY_DIR=${CMAKE_BINARY_DIR}
+        -DBETREE_GENERATOR=${CMAKE_GENERATOR}
+        -DBETREE_C_COMPILER=${CMAKE_C_COMPILER}
+        -DBETREE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+        "-DBETREE_C_FLAGS=${CMAKE_C_FLAGS}"
+        "-DBETREE_CXX_FLAGS=${CMAKE_CXX_FLAGS}"
+        "-DBETREE_EXE_LINKER_FLAGS=${CMAKE_EXE_LINKER_FLAGS}"
+        -DBETREE_CONFIG=$<CONFIG>
+        -P ${CMAKE_SOURCE_DIR}/tests/package_consumer/run.cmake
+)
+
 # Custom targets for convenience
 add_custom_target(build-all
     DEPENDS betree
@@ -157,8 +175,47 @@ if(GSL_FOUND)
 endif()
 message(STATUS "")
 
-# Installation rules
-install(FILES include/betree_cpp.hpp
-    DESTINATION include
+# Installation and CMake package export
+install(TARGETS betree
+    EXPORT betreeTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(FILES
+    include/betree_cpp.hpp
+    src/betree.h
+    src/betree.hpp
+    src/betree_err.h
+    src/betree_err.hpp
+    src/dyn_arr.h
+    src/dyn_arr.hpp
+    src/value.h
+    src/value.hpp
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     COMPONENT development
+)
+
+set(BETREE_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/betree")
+configure_package_config_file(
+    cmake/betreeConfig.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/betreeConfig.cmake"
+    INSTALL_DESTINATION "${BETREE_INSTALL_CMAKEDIR}"
+)
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/betreeConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+install(EXPORT betreeTargets
+    FILE betreeTargets.cmake
+    NAMESPACE betree::
+    DESTINATION "${BETREE_INSTALL_CMAKEDIR}"
+)
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/betreeConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/betreeConfigVersion.cmake"
+    DESTINATION "${BETREE_INSTALL_CMAKEDIR}"
 )

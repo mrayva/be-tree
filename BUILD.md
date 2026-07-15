@@ -5,6 +5,7 @@ This document describes how to build the be-tree library using the modern CMake 
 ## Table of Contents
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
+- [Installing](#installing)
 - [Building with vcpkg](#building-with-vcpkg)
 - [Building without vcpkg](#building-without-vcpkg)
 - [Build Options](#build-options)
@@ -55,6 +56,25 @@ cmake .. -DBUILD_CPP_CORE=OFF
 # Build
 cmake --build .
 ```
+
+## Installing
+
+Install the static library, C and C++ headers, and CMake package metadata into a prefix:
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j4
+cmake --install build --prefix /path/to/prefix
+```
+
+Downstream CMake projects can then consume either API through the exported target:
+
+```cmake
+find_package(betree CONFIG REQUIRED)
+target_link_libraries(your_target PRIVATE betree::betree)
+```
+
+Set `CMAKE_PREFIX_PATH=/path/to/prefix` when the prefix is outside CMake's default search paths. Because the library implementation uses C++20, downstream projects must enable both C and C++ even when calling only the C API.
 
 ## Building with vcpkg
 

@@ -191,9 +191,3 @@ target_link_libraries(betree PUBLIC m)
 
 # Set PIC for shared library usage
 set_target_properties(betree PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-# Installation rules (optional, for future use)
-# install(TARGETS betree
-#     ARCHIVE DESTINATION lib
-#     LIBRARY DESTINATION lib
-# )

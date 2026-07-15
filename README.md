@@ -1,10 +1,12 @@
 # BE-Tree
 
-![Build Status]( https://travis-ci.org/FrankBro/be-tree.svg?branch=master "Build Status")
+![Build Status](https://github.com/mrayva/be-tree/actions/workflows/pr-checks.yml/badge.svg "Build Status")
 
 ## Overview
 
 The goal of the be-tree is to evaluate as fast as possible a large amount of boolean expressions. The biggest gain in speed comes from evaluating as little expressions as possible, based on creating a structure that splits the possible domain for each expression, memoization and short-circuiting of events not containing some attributes.
+
+Installed CMake packages expose `betree::betree` for both the C API and the header-only C++ wrapper. See [BUILD.md](BUILD.md#installing) for installation and `find_package` usage.
 
 The following types are supported:
 

@@ -70,123 +70,57 @@ foreach(gen_file ${BETREE_GENERATED_SOURCES})
     endif()
 endforeach()
 
-# Create the betree library
-if(BUILD_CPP_CORE)
-    # The supported core build uses a mixed-language approach:
-    # - Keep remaining C sources as C for the public C API boundary
-    # - Build the supported core implementation as C++20
-    # - Use the allocation bridge where needed
-    set(ALL_SOURCES
-        ${BETREE_ALLOC_SOURCES}
-        ${BETREE_C_SOURCES}
-        ${BETREE_CPP_SOURCES}
-        ${BETREE_CPP_BRIDGE_SOURCES}
-        ${BETREE_GENERATED_SOURCES}
-    )
-    
-    add_library(betree STATIC ${ALL_SOURCES})
-    
-    # Only compile the C++ sources and allocation bridge as C++
-    # Keep C sources as C for the public C boundary
-    set_source_files_properties(
-        ${BETREE_CPP_SOURCES}
-        ${BETREE_CPP_BRIDGE_SOURCES}
-        PROPERTIES LANGUAGE CXX
-    )
-    
-    # Explicitly mark C sources as C (default but explicit for clarity)
-    set_source_files_properties(
-        ${BETREE_ALLOC_SOURCES}
-        ${BETREE_C_SOURCES}
-        ${BETREE_GENERATED_SOURCES}
-        PROPERTIES LANGUAGE C
-    )
-    
-    # Set C++ standard for C++ files
-    target_compile_features(betree PUBLIC cxx_std_20)
-    
-    # Add compiler warnings for C++
-    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        target_compile_options(betree PRIVATE
-            $<$<COMPILE_LANGUAGE:CXX>:-Wall>
-            $<$<COMPILE_LANGUAGE:CXX>:-Wextra>
-            $<$<COMPILE_LANGUAGE:CXX>:-Wpedantic>
-            $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-declarations>
-            $<$<COMPILE_LANGUAGE:CXX>:-Wno-old-style-cast>
-            $<$<COMPILE_LANGUAGE:CXX>:-Wno-zero-as-null-pointer-constant>
-        )
-    endif()
-    
-    # Add compiler warnings for C
-    if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
-        target_compile_options(betree PRIVATE
-            $<$<COMPILE_LANGUAGE:C>:-Wall>
-            $<$<COMPILE_LANGUAGE:C>:-Wextra>
-            $<$<COMPILE_LANGUAGE:C>:-Wpedantic>
-            $<$<COMPILE_LANGUAGE:C>:-Wshadow>
-            $<$<COMPILE_LANGUAGE:C>:-Wfloat-equal>
-            $<$<COMPILE_LANGUAGE:C>:-Wundef>
-            $<$<COMPILE_LANGUAGE:C>:-Wcast-align>
-            $<$<COMPILE_LANGUAGE:C>:-Wwrite-strings>
-            $<$<COMPILE_LANGUAGE:C>:-Wunreachable-code>
-            $<$<COMPILE_LANGUAGE:C>:-Wformat=2>
-        )
-    endif()
-else()
-    # The legacy pure-C core is no longer available in this checkout.
-    # BUILD_CPP_CORE=OFF therefore keeps the public C API surface but still
-    # links the supported C++ core implementation alongside the remaining C support files.
-    set(ALL_SOURCES
-        ${BETREE_ALLOC_SOURCES}
-        ${BETREE_C_SOURCES}
-        ${BETREE_CPP_SOURCES}
-        ${BETREE_CPP_BRIDGE_SOURCES}
-        ${BETREE_GENERATED_SOURCES}
-    )
+# The supported core is always the same mixed-language target. BUILD_CPP_CORE
+# remains a compatibility option, but no pure-C implementation exists to select.
+set(ALL_SOURCES
+    ${BETREE_ALLOC_SOURCES}
+    ${BETREE_C_SOURCES}
+    ${BETREE_CPP_SOURCES}
+    ${BETREE_CPP_BRIDGE_SOURCES}
+    ${BETREE_GENERATED_SOURCES}
+)
 
-    add_library(betree STATIC ${ALL_SOURCES})
+add_library(betree STATIC ${ALL_SOURCES})
 
-    set_source_files_properties(
-        ${BETREE_CPP_SOURCES}
-        ${BETREE_CPP_BRIDGE_SOURCES}
-        PROPERTIES LANGUAGE CXX
+set_source_files_properties(
+    ${BETREE_CPP_SOURCES}
+    ${BETREE_CPP_BRIDGE_SOURCES}
+    PROPERTIES LANGUAGE CXX
+)
+
+set_source_files_properties(
+    ${BETREE_ALLOC_SOURCES}
+    ${BETREE_C_SOURCES}
+    ${BETREE_GENERATED_SOURCES}
+    PROPERTIES LANGUAGE C
+)
+
+target_compile_features(betree PUBLIC cxx_std_20)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(betree PRIVATE
+        $<$<COMPILE_LANGUAGE:CXX>:-Wall>
+        $<$<COMPILE_LANGUAGE:CXX>:-Wextra>
+        $<$<COMPILE_LANGUAGE:CXX>:-Wpedantic>
+        $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-declarations>
+        $<$<COMPILE_LANGUAGE:CXX>:-Wno-old-style-cast>
+        $<$<COMPILE_LANGUAGE:CXX>:-Wno-zero-as-null-pointer-constant>
     )
+endif()
 
-    set_source_files_properties(
-        ${BETREE_ALLOC_SOURCES}
-        ${BETREE_C_SOURCES}
-        ${BETREE_GENERATED_SOURCES}
-        PROPERTIES LANGUAGE C
+if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(betree PRIVATE
+        $<$<COMPILE_LANGUAGE:C>:-Wall>
+        $<$<COMPILE_LANGUAGE:C>:-Wextra>
+        $<$<COMPILE_LANGUAGE:C>:-Wpedantic>
+        $<$<COMPILE_LANGUAGE:C>:-Wshadow>
+        $<$<COMPILE_LANGUAGE:C>:-Wfloat-equal>
+        $<$<COMPILE_LANGUAGE:C>:-Wundef>
+        $<$<COMPILE_LANGUAGE:C>:-Wcast-align>
+        $<$<COMPILE_LANGUAGE:C>:-Wwrite-strings>
+        $<$<COMPILE_LANGUAGE:C>:-Wunreachable-code>
+        $<$<COMPILE_LANGUAGE:C>:-Wformat=2>
     )
-
-    target_compile_features(betree PUBLIC cxx_std_20)
-
-    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        target_compile_options(betree PRIVATE
-            $<$<COMPILE_LANGUAGE:CXX>:-Wall>
-            $<$<COMPILE_LANGUAGE:CXX>:-Wextra>
-            $<$<COMPILE_LANGUAGE:CXX>:-Wpedantic>
-            $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-declarations>
-            $<$<COMPILE_LANGUAGE:CXX>:-Wno-old-style-cast>
-            $<$<COMPILE_LANGUAGE:CXX>:-Wno-zero-as-null-pointer-constant>
-        )
-    endif()
-
-    # Add compiler warnings for C
-    if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
-        target_compile_options(betree PRIVATE
-            $<$<COMPILE_LANGUAGE:C>:-Wall>
-            $<$<COMPILE_LANGUAGE:C>:-Wextra>
-            $<$<COMPILE_LANGUAGE:C>:-Wpedantic>
-            $<$<COMPILE_LANGUAGE:C>:-Wshadow>
-            $<$<COMPILE_LANGUAGE:C>:-Wfloat-equal>
-            $<$<COMPILE_LANGUAGE:C>:-Wundef>
-            $<$<COMPILE_LANGUAGE:C>:-Wcast-align>
-            $<$<COMPILE_LANGUAGE:C>:-Wwrite-strings>
-            $<$<COMPILE_LANGUAGE:C>:-Wunreachable-code>
-            $<$<COMPILE_LANGUAGE:C>:-Wformat=2>
-        )
-    endif()
 endif()
 
 # Include directories

@@ -75,17 +75,21 @@ void add_integer_list_value(std::int64_t integer, struct betree_integer_list* li
 
 char* integer_list_value_to_string(struct betree_integer_list* list)
 {
+    if(list->count == 0) {
+        return bstrdup("");
+    }
+
     char* string = nullptr;
     for (std::size_t i = 0; i < list->count; i++) {
         char* new_string;
         if (i != 0) {
-            if (basprintf(&new_string, "%s, %ld", string, list->integers[i]) < 0) {
+            if (basprintf(&new_string, "%s, %" PRId64, string, list->integers[i]) < 0) {
                 std::abort();
             }
             bfree(string);
         }
         else {
-            if (basprintf(&new_string, "%ld", list->integers[i]) < 0) {
+            if (basprintf(&new_string, "%" PRId64, list->integers[i]) < 0) {
                 std::abort();
             }
         }
@@ -118,6 +122,10 @@ void add_string_list_value(struct string_value string, struct betree_string_list
 
 char* string_list_value_to_string(struct betree_string_list* list)
 {
+    if(list->count == 0) {
+        return bstrdup("");
+    }
+
     char* string = nullptr;
     for (std::size_t i = 0; i < list->count; i++) {
         char* new_string;
@@ -335,7 +343,7 @@ void free_value(struct value value)
 char* segment_value_to_string(struct betree_segment* segment)
 {
     char* string = nullptr;
-    if (basprintf(&string, "[%ld, %ld]", segment->id, segment->timestamp) < 0) {
+    if (basprintf(&string, "[%" PRId64 ", %" PRId64 "]", segment->id, segment->timestamp) < 0) {
         std::abort();
     }
     return string;
@@ -343,6 +351,10 @@ char* segment_value_to_string(struct betree_segment* segment)
 
 char* segments_value_to_string(struct betree_segments* list)
 {
+    if(list->size == 0) {
+        return bstrdup("");
+    }
+
     char* string = nullptr;
     for (std::size_t i = 0; i < list->size; i++) {
         char* new_string;
@@ -369,12 +381,12 @@ char* frequency_cap_to_string(struct betree_frequency_cap* cap)
     char* string = nullptr;
     const char* type = frequency_type_to_string(cap->type);
     if (cap->timestamp_defined) {
-        if (basprintf(&string, "[[\"%s\", %u, \"%s\"], %u, %ld]", type, cap->id, cap->ns.string, cap->value, cap->timestamp) < 0) {
+        if (basprintf(&string, "[[\"%s\", %" PRIu32 ", \"%s\"], %" PRIu32 ", %" PRId64 "]", type, cap->id, cap->ns.string, cap->value, cap->timestamp) < 0) {
             std::abort();
         }
     }
     else {
-        if (basprintf(&string, "[[\"%s\", %u, \"%s\"], %u, undefined]", type, cap->id, cap->ns.string, cap->value) < 0) {
+        if (basprintf(&string, "[[\"%s\", %" PRIu32 ", \"%s\"], %" PRIu32 ", undefined]", type, cap->id, cap->ns.string, cap->value) < 0) {
             std::abort();
         }
     }
@@ -383,6 +395,10 @@ char* frequency_cap_to_string(struct betree_frequency_cap* cap)
 
 char* frequency_caps_value_to_string(struct betree_frequency_caps* list)
 {
+    if(list->size == 0) {
+        return bstrdup("");
+    }
+
     char* string = nullptr;
     for (std::size_t i = 0; i < list->size; i++) {
         char* new_string;

@@ -137,7 +137,9 @@ struct betree_frequency_cap* make_frequency_cap_with_type(enum frequency_type_e 
     uint32_t value);
 
 enum frequency_type_e get_type_from_string(const char* stype);
+char* segment_value_to_string(struct betree_segment* segment);
 char* segments_value_to_string(struct betree_segments* list);
+char* frequency_cap_to_string(struct betree_frequency_cap* cap);
 char* frequency_caps_value_to_string(struct betree_frequency_caps* list);
 
 void free_integer_list(struct betree_integer_list* value);

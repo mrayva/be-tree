@@ -1,9 +1,12 @@
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 
+#include "alloc.h"
 #include "ast.h"
 #include "minunit.h"
 #include "printer.h"
+#include "value.h"
 
 int parse(const char *text, struct ast_node **node);
 
@@ -117,6 +120,66 @@ int test_special()
     return 0;
 }
 
+int test_empty_collection_strings()
+{
+    struct betree_integer_list* integers = make_integer_list();
+    struct betree_string_list* strings = make_string_list();
+    struct betree_segments* segments = make_segments();
+    struct betree_frequency_caps* caps = make_frequency_caps();
+
+    char* integer_text = integer_list_value_to_string(integers);
+    char* string_text = string_list_value_to_string(strings);
+    char* segment_text = segments_value_to_string(segments);
+    char* cap_text = frequency_caps_value_to_string(caps);
+    bool result = integer_text != NULL && string_text != NULL && segment_text != NULL
+        && cap_text != NULL && strcmp(integer_text, "") == 0 && strcmp(string_text, "") == 0
+        && strcmp(segment_text, "") == 0 && strcmp(cap_text, "") == 0;
+
+    bfree(integer_text);
+    bfree(string_text);
+    bfree(segment_text);
+    bfree(cap_text);
+    free_integer_list(integers);
+    free_string_list(strings);
+    free_segments(segments);
+    free_frequency_caps(caps);
+
+    mu_assert(result, "empty collections return owned empty strings");
+    return 0;
+}
+
+int test_signed_64_bit_value_strings()
+{
+    struct betree_integer_list* integers = make_integer_list();
+    add_integer_list_value(INT64_MIN, integers);
+    add_integer_list_value(INT64_MAX, integers);
+    char* integer_text = integer_list_value_to_string(integers);
+
+    struct betree_segment* segment = make_segment(INT64_MIN, INT64_MAX);
+    char* segment_text = segment_value_to_string(segment);
+
+    struct string_value ns = { .string = bstrdup("ns") };
+    struct betree_frequency_cap* cap
+        = make_frequency_cap("flight", UINT32_MAX, ns, true, INT64_MIN, UINT32_MAX);
+    char* cap_text = frequency_cap_to_string(cap);
+
+    bool result = strcmp(integer_text, "-9223372036854775808, 9223372036854775807") == 0
+        && strcmp(segment_text, "[-9223372036854775808, 9223372036854775807]") == 0
+        && strcmp(cap_text,
+               "[[\"flight\", 4294967295, \"ns\"], 4294967295, -9223372036854775808]")
+            == 0;
+
+    bfree(integer_text);
+    bfree(segment_text);
+    bfree(cap_text);
+    free_integer_list(integers);
+    free_segment(segment);
+    free_frequency_cap(cap);
+
+    mu_assert(result, "fixed-width values format portably");
+    return 0;
+}
+
 int all_tests()
 {
     mu_run_test(test_compare);
@@ -125,6 +188,8 @@ int all_tests()
     mu_run_test(test_list);
     mu_run_test(test_bool);
     mu_run_test(test_special);
+    mu_run_test(test_empty_collection_strings);
+    mu_run_test(test_signed_64_bit_value_strings);
 
     return 0;
 }

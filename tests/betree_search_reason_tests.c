@@ -458,6 +458,36 @@ int test_short_circuit_fail()
 }
 
 
+int test_short_circuit_fail_beyond_first_variable_word()
+{
+    struct betree_err* tree = betree_make_err();
+    char variable_name[16];
+
+    for(size_t i = 0; i <= 64; ++i) {
+        snprintf(variable_name, sizeof(variable_name), "v%zu", i);
+        betree_add_boolean_variable_err(tree, variable_name, true);
+    }
+
+    mu_assert(betree_insert_err(tree, 1, "v64"), "insertExpression");
+    betree_make_sub_ids(tree);
+
+    struct report_err* report = make_report_err(tree);
+    mu_assert(betree_search_err(tree, "{}", report), "searchEvent");
+    mu_assert(report->matched == 0, "matchedCount");
+
+    dynamic_array_t* reason = betree_reason_map_get(report->reason_sub_id_list, 64);
+    mu_assert(reason != NULL, "reasonAtVariable64");
+    mu_assert(reason->size == 1, "reasonCount");
+    mu_assert(reason->data[0] == 1, "reasonSubscriptionId");
+    mu_assert(strcmp(report->reason_sub_id_list->reasons[64]->name, "v64") == 0,
+        "reasonVariableName");
+
+    free_report_err(report);
+    betree_free_err(tree);
+    return 0;
+}
+
+
 int test_multiple_bool_exprs_fail()
 {
     struct betree_err* tree = betree_make_err();
@@ -1379,6 +1409,7 @@ int all_tests()
     mu_run_test(test_int64_fail);
 
     mu_run_test(test_short_circuit_fail);
+    mu_run_test(test_short_circuit_fail_beyond_first_variable_word);
 
     mu_run_test(test_multiple_bool_exprs_fail);
 

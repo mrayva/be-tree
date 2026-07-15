@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 
@@ -77,12 +78,12 @@ static inline enum short_circuit_e try_short_circuit_(
     for (std::size_t i = 0; i < count; i++) {
         std::uint64_t pass_mask = short_circuit->pass[i] & undefined[i];
         if (pass_mask) {
-            *last_var = i * 64 + __builtin_ctzll(pass_mask);
+            *last_var = i * 64 + std::countr_zero(pass_mask);
             return SHORT_CIRCUIT_PASS;
         }
         std::uint64_t fail_mask = short_circuit->fail[i] & undefined[i];
         if (fail_mask) {
-            *last_var = i * 64 + __builtin_ctzll(fail_mask);
+            *last_var = i * 64 + std::countr_zero(fail_mask);
             return SHORT_CIRCUIT_FAIL;
         }
     }
@@ -100,14 +101,9 @@ static inline enum short_circuit_e try_short_circuit_err(
         if (short_circuit->pass[i] & undefined[i]) {
             return SHORT_CIRCUIT_PASS;
         }
-        if (short_circuit->fail[i] & undefined[i]) {
-            for (std::size_t j = 0; j < attr_domains_count; j++) {
-                if ((1ULL << (j % 64ULL) & short_circuit->fail[i])
-                    && (1ULL << (j % 64ULL) & undefined[i])) {
-                    *last_reason = j;
-                    break;
-                }
-            }
+        std::uint64_t fail_mask = short_circuit->fail[i] & undefined[i];
+        if (fail_mask) {
+            *last_reason = i * 64 + std::countr_zero(fail_mask);
             return SHORT_CIRCUIT_FAIL;
         }
     }

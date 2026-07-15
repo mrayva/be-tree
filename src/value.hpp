@@ -16,10 +16,10 @@ struct value;
 extern "C" {
 #endif
 
-struct betree_integer_list* make_integer_list();
-struct betree_string_list* make_string_list();
-struct betree_segments* make_segments();
-struct betree_frequency_caps* make_frequency_caps();
+struct betree_integer_list* make_integer_list(void);
+struct betree_string_list* make_string_list(void);
+struct betree_segments* make_segments(void);
+struct betree_frequency_caps* make_frequency_caps(void);
 
 void add_integer_list_value(std::int64_t integer, struct betree_integer_list* list);
 char* integer_list_value_to_string(struct betree_integer_list* list);

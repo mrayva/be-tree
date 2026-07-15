@@ -23,7 +23,7 @@
 
 extern "C" {
 
-struct ast_node* ast_node_create()
+struct ast_node* ast_node_create(void)
 {
     struct ast_node* node = static_cast<struct ast_node*>(bcalloc(sizeof(struct ast_node)));
     if(node == nullptr) {
@@ -178,7 +178,7 @@ struct ast_node* ast_list_expr_create(
     return node;
 }
 
-struct ast_node* ast_special_expr_create()
+struct ast_node* ast_special_expr_create(void)
 {
     struct ast_node* node = ast_node_create();
     node->type = AST_TYPE_SPECIAL_EXPR;

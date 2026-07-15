@@ -83,7 +83,7 @@ extern int zzdebug;
 #if ! defined ZZSTYPE && ! defined ZZSTYPE_IS_DECLARED
 union ZZSTYPE
 {
-#line 32 "src/event_parser.y"
+#line 31 "src/event_parser.y"
 
     int token;
     char *string;
@@ -117,5 +117,11 @@ typedef union ZZSTYPE ZZSTYPE;
 
 int zzparse (void *scanner);
 
+/* "%code provides" blocks.  */
+#line 52 "src/event_parser.y"
+
+    int zzlex(ZZSTYPE *yylval_param, void *scanner);
+
+#line 126 "src/event_parser.h"
 
 #endif /* !YY_ZZ_SRC_EVENT_PARSER_H_INCLUDED  */

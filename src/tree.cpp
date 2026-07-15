@@ -1614,7 +1614,7 @@ struct betree_sub* make_sub(struct config* config, betree_sub_t id, struct ast_n
     return sub;
 }
 
-struct betree_event* make_empty_event()
+struct betree_event* make_empty_event(void)
 {
     auto event = static_cast<struct betree_event*>(bcalloc(sizeof(struct betree_event)));
     if(event == nullptr) {

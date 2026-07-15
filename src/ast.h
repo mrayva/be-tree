@@ -278,7 +278,7 @@ struct ast_node {
     struct ast_is_null_expr is_null_expr;
 };
 
-struct ast_node* ast_node_create();
+struct ast_node* ast_node_create(void);
 struct ast_node* ast_compare_expr_create(
     enum ast_compare_e op, const char* name, struct compare_value value);
 struct ast_node* ast_equality_expr_create(

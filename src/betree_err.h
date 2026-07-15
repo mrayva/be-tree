@@ -54,7 +54,7 @@ struct report_err {
  * Initialization
  */
 void betree_init_err(struct betree_err* betree);
-struct betree_err* betree_make_err();
+struct betree_err* betree_make_err(void);
 struct betree_err* betree_make_with_parameters_err(
     uint64_t lnode_max_cap, uint64_t min_partition_size);
 

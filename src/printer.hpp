@@ -1,11 +1,12 @@
 #pragma once
 
+#include "betree.h"
+
 struct ast_node;
 struct betree_variable;
 struct attr_domain;
 struct cdir;
 struct report;
-enum betree_value_type_e;
 
 #ifdef __cplusplus
 extern "C" {

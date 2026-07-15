@@ -100,52 +100,12 @@ extern int xxdebug;
   };
   typedef enum xxtokentype xxtoken_kind_t;
 #endif
-/* Token kinds.  */
-#define XXEMPTY -2
-#define XXEOF 0
-#define XXerror 256
-#define XXUNDEF 257
-#define TMINUS 258
-#define TCEQ 259
-#define TCNE 260
-#define TCGT 261
-#define TCGE 262
-#define TCLT 263
-#define TCLE 264
-#define TLPAREN 265
-#define TRPAREN 266
-#define TCOMMA 267
-#define TNOTIN 268
-#define TIN 269
-#define TONEOF 270
-#define TNONEOF 271
-#define TALLOF 272
-#define TAND 273
-#define TOR 274
-#define TNOT 275
-#define TWITHINFREQUENCYCAP 276
-#define TSEGMENTWITHIN 277
-#define TSEGMENTBEFORE 278
-#define TGEOWITHINRADIUS 279
-#define TCONTAINS 280
-#define TSTARTSWITH 281
-#define TENDSWITH 282
-#define TISNOTNULL 283
-#define TISNULL 284
-#define TISEMPTY 285
-#define TTRUE 286
-#define TFALSE 287
-#define TSTRING 288
-#define TIDENTIFIER 289
-#define TANNOTATION 290
-#define TINTEGER 291
-#define TFLOAT 292
 
 /* Value type.  */
 #if ! defined XXSTYPE && ! defined XXSTYPE_IS_DECLARED
 union XXSTYPE
 {
-#line 35 "src/parser.y"
+#line 34 "src/parser.y"
 
     char *string;
     int64_t integer_value;
@@ -163,7 +123,7 @@ union XXSTYPE
     struct ast_node *node;
     int token;
 
-#line 167 "src/parser.h"
+#line 127 "src/parser.h"
 
 };
 typedef union XXSTYPE XXSTYPE;
@@ -176,5 +136,11 @@ typedef union XXSTYPE XXSTYPE;
 
 int xxparse (void *scanner, struct ast_node** root);
 
+/* "%code provides" blocks.  */
+#line 52 "src/parser.y"
+
+    int xxlex(XXSTYPE *yylval_param, void *scanner);
+
+#line 145 "src/parser.h"
 
 #endif /* !YY_XX_SRC_PARSER_H_INCLUDED  */

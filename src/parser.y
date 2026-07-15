@@ -8,7 +8,6 @@
     #include "betree.h"
     #include "parser.h"
     #include "value.h"
-    extern int xxlex();
     void xxerror(void *scanner, struct ast_node** node, const char *s) { (void)node; (void)scanner; printf("ERROR: %s\n", s); }
 #ifdef NIF
     #include "erl_nif.h"
@@ -24,7 +23,7 @@
 
 // %debug
 %define api.pure full
-%lex-param {void *scanner} {struct ast_node** root}
+%lex-param {void *scanner}
 %parse-param {void *scanner} {struct ast_node** root}
 %define api.prefix {xx}
 
@@ -48,6 +47,10 @@
     struct list_value list_value;
     struct ast_node *node;
     int token;
+}
+
+%code provides {
+    int xxlex(XXSTYPE *yylval_param, void *scanner);
 }
 
 %token<token> TMINUS

@@ -19,8 +19,7 @@ struct pred_map {
 };
 
 void assign_pred(struct pred_map* pred_map, struct ast_node* node);
-struct pred_map* make_pred_map();
+struct pred_map* make_pred_map(void);
 void free_pred_map(struct pred_map* pred_map);
 
 #endif // __cplusplus
-

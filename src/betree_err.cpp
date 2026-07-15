@@ -740,7 +740,7 @@ void betree_init_err(struct betree_err* betree)
     betree_init_with_config_err(betree, config);
 }
 
-struct betree_err* betree_make_err()
+struct betree_err* betree_make_err(void)
 {
     auto config = make_default_config();
     return betree_make_with_config_err(config);

@@ -41,7 +41,7 @@ struct integer_map {
 };
 
 struct config* make_config(uint8_t lnode_max_cap, uint8_t partition_min_size);
-struct config* make_default_config();
+struct config* make_default_config(void);
 void free_config(struct config* config);
 
 struct config {

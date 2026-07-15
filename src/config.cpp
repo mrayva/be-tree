@@ -156,7 +156,7 @@ struct config* make_config(std::uint8_t lnode_max_cap, std::uint8_t partition_mi
     return config;
 }
 
-struct config* make_default_config()
+struct config* make_default_config(void)
 {
     return make_config(3, 0);
 }

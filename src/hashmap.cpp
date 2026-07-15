@@ -48,7 +48,7 @@ static struct jsw_rbtree* exprmap_new() {
     return jsw_rbnew(expr_cmp);
 }
 
-struct pred_map* make_pred_map() {
+struct pred_map* make_pred_map(void) {
     auto* map = static_cast<struct pred_map*>(bcalloc(sizeof(struct pred_map)));
     if (map == nullptr) {
         std::fprintf(stderr, "%s bcalloc failed\n", __func__);

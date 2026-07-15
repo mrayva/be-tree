@@ -12,7 +12,7 @@
 
 extern "C" {
 
-struct betree_integer_list* make_integer_list()
+struct betree_integer_list* make_integer_list(void)
 {
     auto* value = static_cast<struct betree_integer_list*>(bcalloc(sizeof(struct betree_integer_list)));
     if (value == nullptr) {
@@ -22,7 +22,7 @@ struct betree_integer_list* make_integer_list()
     return value;
 }
 
-struct betree_string_list* make_string_list()
+struct betree_string_list* make_string_list(void)
 {
     auto* value = static_cast<struct betree_string_list*>(bcalloc(sizeof(struct betree_string_list)));
     if (value == nullptr) {
@@ -32,7 +32,7 @@ struct betree_string_list* make_string_list()
     return value;
 }
 
-struct betree_segments* make_segments()
+struct betree_segments* make_segments(void)
 {
     auto* value = static_cast<struct betree_segments*>(bcalloc(sizeof(struct betree_segments)));
     if (value == nullptr) {
@@ -42,7 +42,7 @@ struct betree_segments* make_segments()
     return value;
 }
 
-struct betree_frequency_caps* make_frequency_caps()
+struct betree_frequency_caps* make_frequency_caps(void)
 {
     auto* value = static_cast<struct betree_frequency_caps*>(bcalloc(sizeof(struct betree_frequency_caps)));
     if (value == nullptr) {

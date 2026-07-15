@@ -42,7 +42,7 @@ void betree_add_frequency_cap(struct betree_frequency_caps* frequency_caps, std:
 const struct betree_variable** make_environment(std::size_t attr_domain_count, const struct betree_event* event);
 
 void betree_init(struct betree* betree);
-struct betree* betree_make();
+struct betree* betree_make(void);
 struct betree* betree_make_with_parameters(std::uint64_t lnode_max_cap, std::uint64_t min_partition_size);
 
 void betree_add_boolean_variable(struct betree* betree, const char* name, bool allow_undefined);
@@ -106,10 +106,10 @@ bool betree_search_with_event_ids(const struct betree* betree, struct betree_eve
 bool betree_exists(const struct betree* tree, const char* event_str);
 bool betree_exists_with_event(const struct betree* betree, struct betree_event* event);
 
-struct report* make_report();
+struct report* make_report(void);
 void free_report(struct report* report);
 
-struct report_counting* make_report_counting();
+struct report_counting* make_report_counting(void);
 void free_report_counting(struct report_counting* report);
 
 void betree_deinit(struct betree* betree);

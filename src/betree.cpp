@@ -671,7 +671,7 @@ bool betree_search_with_event_ids(const struct betree* betree, struct betree_eve
     return betree_search_with_event_filled_ids(betree, event, report, ids, sz);
 }
 
-struct report* make_report()
+struct report* make_report(void)
 {
     auto report = static_cast<struct report*>(bcalloc(sizeof(struct report)));
     if(report == nullptr) {
@@ -695,7 +695,7 @@ void free_report(struct report* report)
     bfree(report);
 }
 
-struct report_counting* make_report_counting()
+struct report_counting* make_report_counting(void)
 {
     auto report = static_cast<struct report_counting*>(bcalloc(sizeof(struct report_counting)));
     if(report == nullptr) {
@@ -750,7 +750,7 @@ static struct betree* betree_make_with_config(struct config* config)
 
 extern "C" {
 
-struct betree* betree_make()
+struct betree* betree_make(void)
 {
     struct config* config = make_default_config();
     return betree_make_with_config(config);

@@ -10,7 +10,6 @@
     #include "tree.h"
     #include "value.h"
     struct betree_event *root;
-    extern int zzlex();
     void zzerror(void *scanner, const char *s) { (void)scanner; printf("ERROR: %s\n", s); }
 #if defined(__GNUC__)
     #pragma GCC diagnostic push
@@ -48,6 +47,10 @@
     struct betree_variable* variable;
 
     struct betree_event* event;
+}
+
+%code provides {
+    int zzlex(ZZSTYPE *yylval_param, void *scanner);
 }
 
 %token<token> EVENT_LCURLY EVENT_RCURLY

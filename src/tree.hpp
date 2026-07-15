@@ -173,7 +173,7 @@ struct pnode* create_pdir(const struct config* config, const char* attr, betree_
 // Subscription creation
 void fill_pred(struct betree_sub* sub, const struct ast_node* expr);
 struct betree_sub* make_sub(struct config* config, betree_sub_t id, struct ast_node* expr);
-struct betree_event* make_empty_event();
+struct betree_event* make_empty_event(void);
 void event_to_string(const struct betree_event* event, char* buffer);
 
 // Variable management

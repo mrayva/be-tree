@@ -104,7 +104,7 @@ const struct betree_variable** make_environment(size_t attr_domain_count, const 
  * Initialization
  */
 void betree_init(struct betree* betree);
-struct betree* betree_make();
+struct betree* betree_make(void);
 struct betree* betree_make_with_parameters(uint64_t lnode_max_cap, uint64_t min_partition_size);
 
 void betree_add_boolean_variable(struct betree* betree, const char* name, bool allow_undefined);
@@ -182,10 +182,10 @@ bool betree_exists_with_event(const struct betree* betree, struct betree_event* 
 
 //bool betree_delete(struct betree* betree, betree_sub_t id);
 
-struct report* make_report();
+struct report* make_report(void);
 void free_report(struct report* report);
 
-struct report_counting* make_report_counting();
+struct report_counting* make_report_counting(void);
 void free_report_counting(struct report_counting* report);
 
 /*

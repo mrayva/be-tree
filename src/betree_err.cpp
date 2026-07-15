@@ -668,6 +668,12 @@ bool betree_search_ids_err(const struct betree_err* tree,
 bool betree_search_with_event_err(
     const struct betree_err* betree, struct betree_event* event, struct report_err* report)
 {
+    if(event == nullptr || (event->config != nullptr && event->config != betree->config)) {
+        betree_var_t invalid_event
+            = ADDITIONAL_REASON(betree->config->attr_domain_count, REASON_INVALID_EVENT);
+        set_reason_sub_id_lists(report, invalid_event, betree->sub_ids);
+        return false;
+    }
     fill_event(betree->config, event);
     sort_event_lists(event);
     return betree_search_with_event_filled_err(betree, event, report);
@@ -679,6 +685,12 @@ bool betree_search_with_event_ids_err(const struct betree_err* betree,
     const std::uint64_t* ids,
     std::size_t sz)
 {
+    if(event == nullptr || (event->config != nullptr && event->config != betree->config)) {
+        betree_var_t invalid_event
+            = ADDITIONAL_REASON(betree->config->attr_domain_count, REASON_INVALID_EVENT);
+        set_reason_sub_id_lists_from_ids(report, invalid_event, ids, sz);
+        return false;
+    }
     fill_event(betree->config, event);
     sort_event_lists(event);
     return betree_search_with_event_filled_ids_err(betree, event, report, ids, sz);

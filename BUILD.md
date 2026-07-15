@@ -21,11 +21,6 @@ This document describes how to build the be-tree library using the modern CMake 
 - Bison (for parser generation, if not already generated)
 - GNU Scientific Library (GSL) for test executables
 
-### Optional (via vcpkg)
-- fmt library (version 10.0.0+)
-- Microsoft GSL (version 4.0.0+)
-- Catch2 (version 3.0.0+) for future C++ unit tests
-
 ## Quick Start
 
 ### 1. Generate lex/yacc files (if not already generated)
@@ -65,7 +60,7 @@ cmake --build .
 
 vcpkg is a cross-platform package manager that simplifies dependency management.
 
-The dependencies declared in `vcpkg.json` (fmt, ms-gsl, catch2) are currently optional. The supported core does not require them today, but the CMake build can link them when present.
+The manifest installs GSL, which is used by the benchmark-style test executables.
 
 ### 1. Install vcpkg
 ```bash
@@ -100,9 +95,7 @@ cmake --build .
 ```
 
 vcpkg will automatically install the dependencies listed in `vcpkg.json`:
-- fmt (formatted output library)
-- ms-gsl (Microsoft's Guidelines Support Library)
-- catch2 (testing framework, dev dependency)
+- gsl (GNU Scientific Library, used by benchmark-style tests)
 
 ## Building without vcpkg
 
@@ -110,7 +103,7 @@ If you don't want to use vcpkg, you can install dependencies system-wide or skip
 
 ### Ubuntu/Debian
 ```bash
-sudo apt-get install libgsl-dev libfmt-dev
+sudo apt-get install libgsl-dev
 
 # Generate lex/yacc files
 make src/lexer.c src/parser.c src/event_lexer.c src/event_parser.c
@@ -123,7 +116,7 @@ cmake --build .
 
 ### macOS (with Homebrew)
 ```bash
-brew install gsl fmt
+brew install gsl
 
 # Generate lex/yacc files
 make src/lexer.c src/parser.c src/event_lexer.c src/event_parser.c
@@ -202,6 +195,8 @@ This runs:
 The wrapper smoke test now covers both wrapper surfaces:
 - JSON-based `Tree::search(...)`
 - structured-event usage through `Tree::make_event()`, typed `Event::set_*` methods, `Tree::search(event, ...)`, and `Tree::exists(event)`
+
+Structured events are schema-bound. Search rejects an event created by a different tree, and the creating tree must outlive the event.
 
 The parser suite also locks down the empty-list contract used by the matcher:
 - JSON `[]` is intentionally treated as an untyped empty list at parse time

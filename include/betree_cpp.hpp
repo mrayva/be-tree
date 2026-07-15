@@ -68,9 +68,9 @@ public:
  */
 struct SearchResult {
     std::vector<std::uint64_t> matched_subs;  ///< IDs of matched subscriptions
-    std::size_t evaluated;                     ///< Number of expressions evaluated
-    std::size_t memoized;                      ///< Number of memoized results reused
-    std::size_t shorted;                       ///< Number of short-circuit optimizations
+    std::size_t evaluated = 0;                 ///< Number of expressions evaluated
+    std::size_t memoized = 0;                  ///< Number of memoized results reused
+    std::size_t shorted = 0;                   ///< Number of short-circuit optimizations
 
     bool empty() const { return matched_subs.empty(); }
     std::size_t size() const { return matched_subs.size(); }
@@ -210,14 +210,17 @@ public:
         for (std::size_t i = 0; i < values.size(); ++i) {
             const auto type_str = detail::as_c_string(values[i].type);
             const auto ns_str = detail::as_c_string(values[i].ns);
-            betree_add_frequency_cap(caps,
-                i,
-                betree_make_frequency_cap(type_str.c_str(),
-                    values[i].id,
-                    ns_str.c_str(),
-                    values[i].timestamp_defined,
-                    values[i].timestamp,
-                    values[i].value));
+            betree_frequency_cap* cap = betree_make_frequency_cap(type_str.c_str(),
+                values[i].id,
+                ns_str.c_str(),
+                values[i].timestamp_defined,
+                values[i].timestamp,
+                values[i].value);
+            if (!cap) {
+                betree_free_frequency_caps(caps);
+                throw BetreeException("Invalid frequency-cap type");
+            }
+            betree_add_frequency_cap(caps, i, cap);
         }
         set_variable(index, betree_make_frequency_caps_variable(variable_name(index), caps));
         return *this;

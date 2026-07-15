@@ -420,6 +420,9 @@ void remove_duplicates_integer_list(struct betree_integer_list* list)
 
 void sort_integer_list(struct betree_integer_list* list)
 {
+    if(list->count < 2) {
+        return;
+    }
     qsort(list->integers, list->count, sizeof(std::int64_t), icmpfunc);
 }
 
@@ -448,6 +451,9 @@ void remove_duplicates_string_list(struct betree_string_list* list)
 
 void sort_string_list(struct betree_string_list* list)
 {
+    if(list->count < 2) {
+        return;
+    }
     qsort(list->strings, list->count, sizeof(struct string_value), scmpfunc);
 }
 

@@ -257,6 +257,8 @@ auto results = tree.search(event);
 bool any = tree.exists(event);
 ```
 
+An event is bound to the tree that created it; use it only with that tree and do not let it outlive the tree.
+
 Features:
 - **Namespace:** All types in `be::` namespace
 - **RAII:** Automatic resource management with `be::Tree`

@@ -618,6 +618,9 @@ bool betree_exists(const struct betree* tree, const char* event_str)
 
 bool betree_exists_with_event(const struct betree* betree, struct betree_event* event)
 {
+    if(event == nullptr || (event->config != nullptr && event->config != betree->config)) {
+        return false;
+    }
     fill_event(betree->config, event);
     sort_event_lists(event);
     return betree_exists_with_event_filled(betree, event);
@@ -641,6 +644,9 @@ bool betree_search_ids(const struct betree* tree, const char* event_str, struct 
 
 bool betree_search_with_event(const struct betree* betree, struct betree_event* event, struct report* report)
 {
+    if(event == nullptr || (event->config != nullptr && event->config != betree->config)) {
+        return false;
+    }
     fill_event(betree->config, event);
     sort_event_lists(event);
     return betree_search_with_event_filled(betree, event, report);
@@ -648,6 +654,9 @@ bool betree_search_with_event(const struct betree* betree, struct betree_event* 
 
 bool betree_search_with_event_ids(const struct betree* betree, struct betree_event* event, struct report* report, const uint64_t* ids, size_t sz)
 {
+    if(event == nullptr || (event->config != nullptr && event->config != betree->config)) {
+        return false;
+    }
     fill_event(betree->config, event);
     sort_event_lists(event);
     return betree_search_with_event_filled_ids(betree, event, report, ids, sz);
@@ -1061,6 +1070,9 @@ struct betree_variable_definition betree_get_variable_definition(struct betree* 
 
 void betree_free_variable(struct betree_variable* variable)
 {
+    if(variable == nullptr) {
+        return;
+    }
     bfree((char*)variable->attr_var.attr);
     free_value(variable->value);
     bfree(variable);
@@ -1112,11 +1124,17 @@ struct betree_event* betree_make_event(const struct betree* betree)
 
 void betree_set_variable(struct betree_event* event, size_t index, struct betree_variable* variable)
 {
-    if(variable != nullptr && event->config != nullptr && index < event->variable_count) {
+    if(event == nullptr || index >= event->variable_count) {
+        return;
+    }
+    if(variable != nullptr && event->config != nullptr) {
         const struct attr_domain* domain = event->config->attr_domains[index];
         bfree((char*)variable->attr_var.attr);
         variable->attr_var.attr = bstrdup(domain->attr_var.attr);
         variable->attr_var.var = domain->attr_var.var;
+    }
+    if(event->variables[index] != variable) {
+        betree_free_variable(event->variables[index]);
     }
     event->variables[index] = variable;
 }

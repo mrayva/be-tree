@@ -67,11 +67,6 @@ function(add_betree_c_test test_name)
     set_tests_properties(${test_name} PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 endfunction()
 
-# Find dependencies (only when using vcpkg or if installed system-wide)
-# These are optional in the current supported build.
-find_package(fmt CONFIG QUIET)
-find_package(Microsoft.GSL CONFIG QUIET)
-
 # Source directory
 add_subdirectory(src)
 
@@ -157,12 +152,6 @@ message(STATUS "  BUILD_CPP_CORE: ${BUILD_CPP_CORE}")
 message(STATUS "  BUILD_EXAMPLES: ${BUILD_EXAMPLES}")
 message(STATUS "  C++ Standard: C++${CMAKE_CXX_STANDARD}")
 message(STATUS "  C Standard: C${CMAKE_C_STANDARD}")
-if(fmt_FOUND)
-    message(STATUS "  fmt library: Found")
-endif()
-if(Microsoft.GSL_FOUND)
-    message(STATUS "  ms-gsl library: Found")
-endif()
 if(GSL_FOUND)
     message(STATUS "  GSL library: Found")
 endif()

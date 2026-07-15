@@ -147,6 +147,7 @@ The event API is slot-based, like the C API:
 
 * setters take the schema index, not the variable name
 * `Tree::variable_definition(index)` can be used to inspect configured slots
+* an event is bound to the tree that created it and must not outlive that tree
 * filtered event searches expect sorted id filters
 
 ## Possible changes

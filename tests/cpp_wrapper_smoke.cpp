@@ -59,6 +59,9 @@ void verify_wrapper_rejections() {
     const auto invalid_event = tree.search("{\"age\": \"bad\", \"country\": \"USA\"}");
     require(invalid_event.empty(),
             "wrapper search did not return empty result on invalid event");
+    require(invalid_event.evaluated == 0 && invalid_event.memoized == 0
+                && invalid_event.shorted == 0,
+            "wrapper invalid search returned uninitialized statistics");
 
     const auto missing_required = tree.search("{\"country\": \"USA\"}");
     require(missing_required.empty(),
@@ -165,6 +168,36 @@ void verify_wrapper_event_api_rejections() {
     const auto filtered = tree.search(event, ids);
     require(filtered.empty(),
             "wrapper event API filtered search accepted special-domain type mismatch");
+
+    auto invalid_cap_event = tree.make_event();
+    bool rejected_invalid_cap = false;
+    try {
+        invalid_cap_event.set_frequency_caps(1, {{"invalid", 10, "ns", false, 0, 0}});
+    } catch (const be::BetreeException&) {
+        rejected_invalid_cap = true;
+    }
+    require(rejected_invalid_cap,
+            "wrapper event API accepted an invalid frequency-cap type");
+}
+
+void verify_wrapper_foreign_event_rejection() {
+    be::Tree source;
+    source.add_integer("age", false, 0, 120)
+        .add_string("country", false, 8);
+    auto event = source.make_event();
+    event.set_integer(0, 25).set_string(1, "USA");
+
+    be::Tree target;
+    target.add_integer("age", false, 0, 120);
+    require(target.insert(400, "age >= 21"),
+            "foreign event rejection insert failed");
+
+    require(target.search(event).empty(),
+            "wrapper accepted an event created by another tree");
+    require(!target.exists(event),
+            "wrapper exists accepted an event created by another tree");
+    require(target.search(event, {400}).empty(),
+            "wrapper filtered search accepted an event created by another tree");
 }
 
 } // namespace
@@ -238,6 +271,7 @@ int main() {
     verify_wrapper_rejections();
     verify_wrapper_event_api();
     verify_wrapper_event_api_rejections();
+    verify_wrapper_foreign_event_rejection();
 
     return 0;
 }

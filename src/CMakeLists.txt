@@ -189,15 +189,6 @@ target_include_directories(betree PUBLIC
 # Link math library (required on Unix-like systems)
 target_link_libraries(betree PUBLIC m)
 
-# Link optional dependencies if found
-if(TARGET fmt::fmt)
-    target_link_libraries(betree PUBLIC fmt::fmt)
-endif()
-
-if(TARGET Microsoft.GSL::GSL)
-    target_link_libraries(betree PUBLIC Microsoft.GSL::GSL)
-endif()
-
 # Set PIC for shared library usage
 set_target_properties(betree PROPERTIES POSITION_INDEPENDENT_CODE ON)
 

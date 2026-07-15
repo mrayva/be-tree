@@ -22,6 +22,15 @@ set(BETREE_GENERATED_SOURCES
     event_parser.c
 )
 
+# Flex and Bison emit scaffolding that triggers these Clang diagnostics. Keep
+# the exceptions source-local so hand-written C remains subject to all warnings.
+set_property(SOURCE lexer.c event_lexer.c APPEND PROPERTY COMPILE_OPTIONS
+    "$<$<C_COMPILER_ID:Clang>:-Wno-unreachable-code>"
+)
+set_property(SOURCE parser.c event_parser.c APPEND PROPERTY COMPILE_OPTIONS
+    "$<$<C_COMPILER_ID:Clang>:-Wno-unused-but-set-variable>"
+)
+
 # C++ source files for the supported core implementation.
 # See examples/ directory for usage demonstrations.
 set(BETREE_CPP_SOURCES

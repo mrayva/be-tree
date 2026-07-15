@@ -216,6 +216,22 @@ int test_invalid_expressions()
     mu_assert(parse("contains(a, )", &node) != 0, "missing contains arg");
     mu_assert(node == NULL, "no node on missing contains arg");
 
+    node = NULL;
+    mu_assert(parse("a = 9223372036854775808", &node) != 0, "positive integer overflow");
+    mu_assert(node == NULL, "no node on positive integer overflow");
+
+    node = NULL;
+    mu_assert(parse("a = -9223372036854775809", &node) != 0, "negative integer overflow");
+    mu_assert(node == NULL, "no node on negative integer overflow");
+
+    node = NULL;
+    mu_assert(parse("a = --1", &node) != 0, "double integer minus");
+    mu_assert(node == NULL, "no node on double integer minus");
+
+    node = NULL;
+    mu_assert(parse("a = - -1.0", &node) != 0, "double float minus");
+    mu_assert(node == NULL, "no node on double float minus");
+
     return 0;
 }
 

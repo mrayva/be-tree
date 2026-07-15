@@ -92,11 +92,12 @@ extern int xxdebug;
     TISEMPTY = 285,                /* TISEMPTY  */
     TTRUE = 286,                   /* TTRUE  */
     TFALSE = 287,                  /* TFALSE  */
-    TSTRING = 288,                 /* TSTRING  */
-    TIDENTIFIER = 289,             /* TIDENTIFIER  */
-    TANNOTATION = 290,             /* TANNOTATION  */
-    TINTEGER = 291,                /* TINTEGER  */
-    TFLOAT = 292                   /* TFLOAT  */
+    TINVALID = 288,                /* TINVALID  */
+    TSTRING = 289,                 /* TSTRING  */
+    TIDENTIFIER = 290,             /* TIDENTIFIER  */
+    TANNOTATION = 291,             /* TANNOTATION  */
+    TINTEGER = 292,                /* TINTEGER  */
+    TFLOAT = 293                   /* TFLOAT  */
   };
   typedef enum xxtokentype xxtoken_kind_t;
 #endif
@@ -123,7 +124,7 @@ union XXSTYPE
     struct ast_node *node;
     int token;
 
-#line 127 "src/parser.h"
+#line 128 "src/parser.h"
 
 };
 typedef union XXSTYPE XXSTYPE;
@@ -141,6 +142,6 @@ int xxparse (void *scanner, struct ast_node** root);
 
     int xxlex(XXSTYPE *yylval_param, void *scanner);
 
-#line 145 "src/parser.h"
+#line 146 "src/parser.h"
 
 #endif /* !YY_XX_SRC_PARSER_H_INCLUDED  */

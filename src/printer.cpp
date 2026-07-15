@@ -1,4 +1,5 @@
 #include <cfloat>
+#include <cinttypes>
 #include <cstdio>
 #include <cstring>
 
@@ -12,7 +13,7 @@ static const char* compare_value_to_string(struct compare_value value)
     char* expr;
     switch(value.value_type) {
         case AST_COMPARE_VALUE_INTEGER:
-            if(basprintf(&expr, "%ld", value.integer_value) < 0) {
+            if(basprintf(&expr, "%" PRId64, value.integer_value) < 0) {
                 std::abort();
             }
             break;
@@ -46,7 +47,7 @@ static const char* equality_value_to_string(struct equality_value value)
     char* expr;
     switch(value.value_type) {
         case AST_EQUALITY_VALUE_INTEGER:
-            if(basprintf(&expr, "%ld", value.integer_value) < 0) {
+            if(basprintf(&expr, "%" PRId64, value.integer_value) < 0) {
                 std::abort();
             }
             break;
@@ -61,7 +62,7 @@ static const char* equality_value_to_string(struct equality_value value)
             }
             break;
         case AST_EQUALITY_VALUE_INTEGER_ENUM:
-            if(basprintf(&expr, "%ld", value.integer_enum_value.integer) < 0) {
+            if(basprintf(&expr, "%" PRId64, value.integer_enum_value.integer) < 0) {
                 std::abort();
             }
             break;
@@ -86,7 +87,7 @@ static const char* set_left_value_to_string(struct set_left_value value)
     char* expr;
     switch(value.value_type) {
         case AST_SET_LEFT_VALUE_INTEGER:
-            if(basprintf(&expr, "%ld", value.integer_value) < 0) {
+            if(basprintf(&expr, "%" PRId64, value.integer_value) < 0) {
                 std::abort();
             }
             break;
@@ -218,7 +219,7 @@ char* ast_to_string(const struct ast_node* node)
             switch(node->special_expr.type) {
                 case AST_SPECIAL_FREQUENCY:
                     if(basprintf(&expr,
-                           "within_frequency_cap(\"%s\", \"%s\", %ld, %zu)",
+                           "within_frequency_cap(\"%s\", \"%s\", %" PRId64 ", %zu)",
                            frequency_type_to_string(node->special_expr.frequency.type),
                            node->special_expr.frequency.ns.string,
                            node->special_expr.frequency.value,
@@ -239,7 +240,7 @@ char* ast_to_string(const struct ast_node* node)
                         default: std::abort();
                     }
                     if(basprintf(&expr,
-                           "%s(%s, %lu, %ld)",
+                           "%s(%s, %" PRIu64 ", %" PRId64 ")",
                            op,
                            node->special_expr.segment.attr_var.attr,
                            node->special_expr.segment.segment_id,
@@ -385,7 +386,7 @@ void print_variable(const struct betree_variable* v)
             printf("%s", v->value.boolean_value ? "true" : "false");
             break;
         case BETREE_INTEGER:
-            printf("%ld", v->value.integer_value);
+            printf("%" PRId64, v->value.integer_value);
             break;
         case BETREE_FLOAT:
             printf("%.2f", v->value.float_value);
@@ -402,7 +403,7 @@ void print_variable(const struct betree_variable* v)
             printf("%s", inner);
             break;
         case BETREE_INTEGER_ENUM:
-            printf("%ld", v->value.integer_enum_value.integer);
+            printf("%" PRId64, v->value.integer_enum_value.integer);
             break;
         case BETREE_SEGMENTS:
             inner = segments_value_to_string(v->value.segments_value);
@@ -438,13 +439,13 @@ void print_attr_domain(const struct attr_domain* domain)
                 printf("INT64_MIN, ");
             }
             else {
-                printf("%ld, ", domain->bound.imin);
+                printf("%" PRId64 ", ", domain->bound.imin);
             }
             if(domain->bound.imax == INT64_MAX) {
                 printf("INT64_MAX]\n");
             }
             else {
-                printf("%ld]\n", domain->bound.imax);
+                printf("%" PRId64 "]\n", domain->bound.imax);
             }
             break;
         case BETREE_FLOAT:
@@ -480,13 +481,13 @@ void print_attr_domain(const struct attr_domain* domain)
                 printf("INT64_MIN, ");
             }
             else {
-                printf("%ld, ", domain->bound.imin);
+                printf("%" PRId64 ", ", domain->bound.imin);
             }
             if(domain->bound.imax == INT64_MAX) {
                 printf("INT64_MAX]\n");
             }
             else {
-                printf("%ld]\n", domain->bound.imax);
+                printf("%" PRId64 "]\n", domain->bound.imax);
             }
             break;
         case BETREE_STRING_LIST:
@@ -536,13 +537,13 @@ void print_cdir(const struct cdir* cdir)
                 printf("INT64_MIN, ");
             }
             else {
-                printf("%ld, ", cdir->bound.imin);
+                printf("%" PRId64 ", ", cdir->bound.imin);
             }
             if(cdir->bound.imax == INT64_MAX) {
                 printf("INT64_MAX]\n");
             }
             else {
-                printf("%ld]\n", cdir->bound.imax);
+                printf("%" PRId64 "]\n", cdir->bound.imax);
             }
             break;
         case BETREE_FLOAT:
@@ -575,13 +576,13 @@ void print_cdir(const struct cdir* cdir)
                 printf("INT64_MIN, ");
             }
             else {
-                printf("%ld, ", cdir->bound.imin);
+                printf("%" PRId64 ", ", cdir->bound.imin);
             }
             if(cdir->bound.imax == INT64_MAX) {
                 printf("INT64_MAX]\n");
             }
             else {
-                printf("%ld]\n", cdir->bound.imax);
+                printf("%" PRId64 "]\n", cdir->bound.imax);
             }
             break;
         case BETREE_STRING_LIST:

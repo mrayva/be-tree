@@ -48,6 +48,8 @@ int test_equality()
     mu_assert(parse_and_compare("i = 1"), "eq int");
     mu_assert(parse_and_compare("i <> 1"), "ne int");
     mu_assert(parse_and_compare("i = -1"), "negative int");
+    mu_assert(parse_and_compare("i = 9223372036854775807"), "maximum int64");
+    mu_assert(parse_and_compare("i = -9223372036854775808"), "minimum int64");
 
     mu_assert(parse_and_compare("f = 1.00"), "eq float");
     mu_assert(parse_and_compare("f <> 1.00"), "ne float");

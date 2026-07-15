@@ -64,6 +64,7 @@
 %token<token> TCONTAINS TSTARTSWITH TENDSWITH 
 %token<token> TISNOTNULL TISNULL TISEMPTY
 %token<token> TTRUE TFALSE
+%token<token> TINVALID
 
 %token<string> TSTRING TIDENTIFIER TANNOTATION
 %token<integer_value> TINTEGER
@@ -101,11 +102,11 @@ program             : expr                                  { *root = $1; }
 ident               : TIDENTIFIER                           { $$ = $1; }
 
 integer             : TINTEGER                              { $$ = $1; }
-                    | TMINUS TINTEGER                       { $$ = - $2; }
+                    | TMINUS TINTEGER                       { if ($2 < 0) { YYERROR; } $$ = - $2; }
 ;
 
 float               : TFLOAT                                { $$ = $1; }
-                    | TMINUS TFLOAT                         { $$ = - $2; }
+                    | TMINUS TFLOAT                         { if ($2 < 0) { YYERROR; } $$ = - $2; }
 ;
 
 string              : TSTRING                               { $$.string = bstrdup($1); $$.str = INVALID_STR; bfree($1); }

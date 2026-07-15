@@ -27,6 +27,7 @@ struct report {
     void (*cba)(void* arg, void** data, size_t count, const void* ctx);
     void *arg;
     betree_var_t last_var;
+    betree_var_t* memoize_vars;
 };
 
 #define NIL_VAR ((betree_var_t)-1)

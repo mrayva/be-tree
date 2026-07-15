@@ -686,12 +686,14 @@ struct report* make_report(void)
     report->cb = nullptr;
     report->arg = nullptr;
     report->last_var = NIL_VAR;
+    report->memoize_vars = nullptr;
     return report;
 }
 
 void free_report(struct report* report)
 {
     bfree(report->subs);
+    bfree(report->memoize_vars);
     bfree(report);
 }
 

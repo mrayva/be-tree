@@ -286,6 +286,90 @@ static int test_excluded_callback_not_called_without_prune()
     return 0;
 }
 
+static int test_short_circuit_context_beyond_first_word()
+{
+    struct betree* tree = betree_make();
+    char name[16];
+    size_t i;
+
+    for(i = 0; i <= 64; i++) {
+        snprintf(name, sizeof(name), "v%zu", i);
+        betree_add_boolean_variable(tree, name, true);
+    }
+
+    struct betree_sub* fail_sub = betree_make_sub(tree, 1, 0, NULL, "v64");
+    struct betree_sub* pass_sub = betree_make_sub(tree, 2, 0, NULL, "not v64");
+    mu_assert(fail_sub != NULL && pass_sub != NULL, "high-index subscriptions");
+    fail_sub->data = (void*)640;
+    pass_sub->data = (void*)641;
+    mu_assert(betree_insert_sub(tree, fail_sub), "insert high-index fail subscription");
+    mu_assert(betree_insert_sub(tree, pass_sub), "insert high-index pass subscription");
+
+    reset_hooks();
+    struct report* report = make_report();
+    report->cb = hook;
+    struct betree_event* event = betree_make_event(tree);
+    mu_assert(betree_search_with_event(tree, event, report), "search empty event");
+
+    mu_assert(seen_count == 2, "two callbacks");
+    mu_assert(seen_contains((void*)640, false, 64), "fail-mask word offset included");
+    mu_assert(seen_contains((void*)641, true, 64), "pass-mask word offset included");
+
+    free_report(report);
+    betree_free_event(event);
+    betree_free(tree);
+    return 0;
+}
+
+static int test_memoized_context_replay()
+{
+    struct betree* tree = betree_make();
+    betree_add_boolean_variable(tree, "a", false);
+    betree_add_boolean_variable(tree, "b", false);
+
+    struct betree_sub* sub1 = betree_make_sub(tree, 1, 0, NULL, "a");
+    struct betree_sub* sub2 = betree_make_sub(tree, 2, 0, NULL, "b and a");
+    mu_assert(sub1 != NULL && sub2 != NULL, "memoized subscriptions");
+    sub1->data = (void*)1001;
+    sub2->data = (void*)1002;
+    mu_assert(betree_insert_sub(tree, sub1), "insert first memoized subscription");
+    mu_assert(betree_insert_sub(tree, sub2), "insert second memoized subscription");
+
+    reset_hooks();
+    struct report* report = make_report();
+    report->cb = hook;
+    struct betree_event* event = betree_make_event(tree);
+    betree_set_variable(event, 0, betree_make_boolean_variable("a", true));
+    betree_set_variable(event, 1, betree_make_boolean_variable("b", true));
+    mu_assert(betree_search_with_event(tree, event, report), "memoized callback search");
+
+    mu_assert(report->memoized > 0, "shared predicate memoized");
+    mu_assert(seen_contains((void*)1001, true, 0), "first result attributed to a");
+    mu_assert(seen_contains((void*)1002, true, 0), "memoized result restores a attribution");
+    mu_assert(report->memoize_vars == NULL, "per-search attribution storage released");
+
+    free_report(report);
+    betree_free_event(event);
+
+    reset_hooks();
+    report = make_report();
+    report->cb = hook;
+    event = betree_make_event(tree);
+    betree_set_variable(event, 0, betree_make_boolean_variable("a", false));
+    betree_set_variable(event, 1, betree_make_boolean_variable("b", true));
+    mu_assert(betree_search_with_event(tree, event, report), "memoized fail callback search");
+
+    mu_assert(report->memoized > 0, "shared failing predicate memoized");
+    mu_assert(seen_contains((void*)1001, false, 0), "first failure attributed to a");
+    mu_assert(seen_contains((void*)1002, false, 0), "memoized failure restores a attribution");
+    mu_assert(report->memoize_vars == NULL, "failing search attribution storage released");
+
+    free_report(report);
+    betree_free_event(event);
+    betree_free(tree);
+    return 0;
+}
+
 static int all_tests()
 {
     mu_run_test(test_one);
@@ -293,6 +377,8 @@ static int all_tests()
     mu_run_test(test_excluded_branch_callback);
     mu_run_test(test_callback_set_contract);
     mu_run_test(test_excluded_callback_not_called_without_prune);
+    mu_run_test(test_short_circuit_context_beyond_first_word);
+    mu_run_test(test_memoized_context_replay);
     return 0;
 }
 

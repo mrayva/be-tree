@@ -77,12 +77,12 @@ static inline enum short_circuit_e try_short_circuit_(
     for (std::size_t i = 0; i < count; i++) {
         std::uint64_t pass_mask = short_circuit->pass[i] & undefined[i];
         if (pass_mask) {
-            *last_var = __builtin_ctzll(pass_mask);
+            *last_var = i * 64 + __builtin_ctzll(pass_mask);
             return SHORT_CIRCUIT_PASS;
         }
         std::uint64_t fail_mask = short_circuit->fail[i] & undefined[i];
         if (fail_mask) {
-            *last_var = __builtin_ctzll(fail_mask);
+            *last_var = i * 64 + __builtin_ctzll(fail_mask);
             return SHORT_CIRCUIT_FAIL;
         }
     }

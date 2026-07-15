@@ -1857,12 +1857,21 @@ bool betree_search_with_preds(const struct config* config,
     struct report* report)
 {
     std::size_t dom_cnt = config->attr_domain_count;
+    std::size_t pred_count = config->pred_map->memoize_count;
     std::uint64_t* undefined = make_undefined(dom_cnt, preds);
-    struct memoize memoize = make_memoize(config->pred_map->memoize_count);
+    struct memoize memoize = make_memoize(pred_count);
     struct subs_to_eval subs;
     init_subs_to_eval(&subs);
     match_be_tree(config, preds, cnode, &subs, report);
     if (report->cb != nullptr) {
+        if(pred_count > 0) {
+            report->memoize_vars
+                = static_cast<betree_var_t*>(bmalloc(pred_count * sizeof(betree_var_t)));
+            if(report->memoize_vars == nullptr) {
+                std::fprintf(stderr, "%s bmalloc failed\n", __func__);
+                std::abort();
+            }
+        }
         void* arg = report->arg;
         evaluate_subs_shared(
             subs,
@@ -1889,6 +1898,8 @@ bool betree_search_with_preds(const struct config* config,
     }
     bfree(subs.subs);
     free_memoize(memoize);
+    bfree(report->memoize_vars);
+    report->memoize_vars = nullptr;
     bfree(undefined);
     bfree(preds);
     return true;

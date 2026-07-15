@@ -944,12 +944,18 @@ static bool match_node_inner(const struct betree_variable** preds,
         if(test_bit(memoize->pass, node->memoize_id)) {
             if(report != nullptr) {
                 report->memoized++;
+                if(report->cb != nullptr && report->memoize_vars != nullptr) {
+                    report->last_var = report->memoize_vars[node->memoize_id];
+                }
             }
             return true;
         }
         if(test_bit(memoize->fail, node->memoize_id)) {
             if(report != nullptr) {
                 report->memoized++;
+                if(report->cb != nullptr && report->memoize_vars != nullptr) {
+                    report->last_var = report->memoize_vars[node->memoize_id];
+                }
             }
             return false;
         }
@@ -1001,6 +1007,9 @@ static bool match_node_inner(const struct betree_variable** preds,
         default: std::abort();
     }
     if(node->memoize_id != INVALID_PRED) {
+        if(report != nullptr && report->cb != nullptr && report->memoize_vars != nullptr) {
+            report->memoize_vars[node->memoize_id] = report->last_var;
+        }
         if(result) {
             set_bit(memoize->pass, node->memoize_id);
         }

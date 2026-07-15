@@ -1700,10 +1700,17 @@ void event_to_string(const struct betree_event* event, char* buffer)
                 bfree((char*)integer_list);
                 break;
             }
-            case(BETREE_SEGMENTS):
+            case(BETREE_SEGMENTS): {
+                const char* segments = segments_value_to_string(pred->value.segments_value);
+                length += sprintf(buffer + length, "%s = (%s)", attr, segments);
+                bfree((char*)segments);
+                break;
+            }
             case(BETREE_FREQUENCY_CAPS): {
-                std::fprintf(stderr, "TODO\n");
-                std::abort();
+                const char* frequency_caps
+                    = frequency_caps_value_to_string(pred->value.frequency_caps_value);
+                length += sprintf(buffer + length, "%s = (%s)", attr, frequency_caps);
+                bfree((char*)frequency_caps);
                 break;
             }
             case(BETREE_STRING_LIST): {

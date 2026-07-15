@@ -392,6 +392,24 @@ int test_frequency()
     return 0;
 }
 
+int test_event_to_string_special_values()
+{
+    struct betree_event* event;
+    event_parse("{\"segments\": [[1,2],[3,4]], "
+                "\"caps\": [[[\"flight\",1,\"ns\"],2,3]]}",
+        &event);
+
+    char buffer[256];
+    event_to_string(event, buffer);
+    mu_assert(strcmp(buffer,
+                  "segments = ([1, 2], [3, 4]), caps = ([[\"flight\", 1, \"ns\"], 2, 3])")
+            == 0,
+        "special values stringify without aborting");
+
+    free_event(event);
+    return 0;
+}
+
 int test_empty_list_typed_preservation()
 {
     struct betree_event* event;
@@ -483,6 +501,7 @@ int all_tests()
     mu_run_test(test_string_list);
     mu_run_test(test_segment);
     mu_run_test(test_frequency);
+    mu_run_test(test_event_to_string_special_values);
     mu_run_test(test_empty_list_typed_preservation);
     mu_run_test(test_invalid_payloads);
     mu_run_test(test_null);

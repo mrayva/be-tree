@@ -257,7 +257,7 @@ auto results = tree.search(event);
 bool any = tree.exists(event);
 ```
 
-An event is bound to the tree that created it; use it only with that tree and do not let it outlive the tree.
+An event is bound to the tree that created it and can only be searched by that tree. The C++ wrapper keeps the underlying tree alive until the event is destroyed.
 
 Features:
 - **Namespace:** All types in `be::` namespace

@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <iostream>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -209,6 +210,28 @@ void verify_wrapper_foreign_event_rejection() {
             "wrapper filtered search accepted an event created by another tree");
 }
 
+void verify_wrapper_event_lifetime() {
+    std::optional<be::Event> retained_event;
+    {
+        be::Tree owner;
+        owner.add_integer("age", false, 0, 120);
+        retained_event.emplace(owner.make_event());
+    }
+    retained_event->set_integer(0, 25).clear(0).set_integer(0, 30);
+    retained_event.reset();
+
+    be::Tree original;
+    original.add_integer("age", false, 0, 120);
+    require(original.insert(500, "age >= 21"),
+            "event lifetime insert failed");
+    auto event = original.make_event();
+    be::Tree moved = std::move(original);
+    event.set_integer(0, 25);
+    const auto result = moved.search(event);
+    require(result.size() == 1 && result.matched_subs[0] == 500,
+            "event did not survive moving its owning tree");
+}
+
 } // namespace
 
 int main() {
@@ -281,6 +304,7 @@ int main() {
     verify_wrapper_event_api();
     verify_wrapper_event_api_rejections();
     verify_wrapper_foreign_event_rejection();
+    verify_wrapper_event_lifetime();
 
     return 0;
 }

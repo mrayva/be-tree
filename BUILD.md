@@ -218,7 +218,7 @@ The wrapper smoke test now covers both wrapper surfaces:
 
 Malformed JSON is recoverable: normal searches return `false`, wrapper searches return an empty result with zeroed statistics, and `_err` searches report `invalid_event`.
 
-Structured events are schema-bound. Search rejects an event created by a different tree, and the creating tree must outlive the event.
+Structured events are schema-bound, and search rejects an event created by a different tree. The C++ wrapper keeps the creating tree alive until all of its events are destroyed.
 
 The parser suite also locks down the empty-list contract used by the matcher:
 - JSON `[]` is intentionally treated as an untyped empty list at parse time

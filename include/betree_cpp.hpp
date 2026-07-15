@@ -30,6 +30,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 #include <stdexcept>
 #include <initializer_list>
@@ -99,14 +100,23 @@ struct FrequencyCap {
  * RAII wrapper for betree_event
  */
 class Event {
+    std::shared_ptr<betree> tree_;
     std::unique_ptr<betree_event, decltype(&betree_free_event)> event_;
-    const betree* tree_;
+
+    friend class Tree;
+
+    Event(std::shared_ptr<betree> tree, betree_event* evt)
+        : tree_(std::move(tree)), event_(evt, betree_free_event) {
+        if (!tree_ || !event_) {
+            throw BetreeException("Invalid event");
+        }
+    }
 
     [[nodiscard]] const char* variable_name(std::size_t index) const {
         if (index >= event_->variable_count) {
             throw BetreeException("Event variable index out of range");
         }
-        return betree_get_variable_definition(const_cast<betree*>(tree_), index).name;
+        return betree_get_variable_definition(tree_.get(), index).name;
     }
 
     void set_variable(std::size_t index, betree_variable* variable) {
@@ -117,12 +127,6 @@ class Event {
     }
 
 public:
-    Event(const betree* tree, betree_event* evt) : event_(evt, betree_free_event), tree_(tree) {
-        if (!event_) {
-            throw BetreeException("Invalid event");
-        }
-    }
-
     betree_event* get() const { return event_.get(); }
 
     Event& clear(std::size_t index) {
@@ -235,7 +239,7 @@ public:
  * Main BE-tree class with RAII resource management
  */
 class Tree {
-    std::unique_ptr<betree, decltype(&betree_free)> tree_;
+    std::shared_ptr<betree> tree_;
 
 public:
     /**
@@ -446,7 +450,7 @@ public:
     }
 
     Event make_event() const {
-        return Event(tree_.get(), betree_make_event(tree_.get()));
+        return Event(tree_, betree_make_event(tree_.get()));
     }
 
     /**

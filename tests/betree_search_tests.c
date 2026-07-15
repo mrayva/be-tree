@@ -127,6 +127,7 @@ int test_search_ids_1()
     mu_assert(report->matched == 1 && report->subs[0] == 4, "goodEvent");
 
     free_report(report);
+    betree_free(tree);
     return 0;
 }
 
@@ -149,6 +150,7 @@ int test_search_ids_2()
     mu_assert(report->matched == 2 && report->subs[0] == 4 && report->subs[1] == 5, "goodEvent");
 
     free_report(report);
+    betree_free(tree);
     return 0;
 }
 
@@ -171,6 +173,7 @@ int test_search_ids_3()
     mu_assert(report->matched == 0, "goodEvent");
 
     free_report(report);
+    betree_free(tree);
     return 0;
 }
 
@@ -193,6 +196,7 @@ int test_search_ids_4()
     mu_assert(report->matched == 0, "goodEvent");
 
     free_report(report);
+    betree_free(tree);
     return 0;
 }
 

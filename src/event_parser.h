@@ -78,24 +78,6 @@ extern int zzdebug;
   };
   typedef enum zztokentype zztoken_kind_t;
 #endif
-/* Token kinds.  */
-#define ZZEMPTY -2
-#define ZZEOF 0
-#define ZZerror 256
-#define ZZUNDEF 257
-#define EVENT_LCURLY 258
-#define EVENT_RCURLY 259
-#define EVENT_LSQUARE 260
-#define EVENT_RSQUARE 261
-#define EVENT_COMMA 262
-#define EVENT_COLON 263
-#define EVENT_MINUS 264
-#define EVENT_NULL 265
-#define EVENT_TRUE 266
-#define EVENT_FALSE 267
-#define EVENT_INTEGER 268
-#define EVENT_FLOAT 269
-#define EVENT_STRING 270
 
 /* Value type.  */
 #if ! defined ZZSTYPE && ! defined ZZSTYPE_IS_DECLARED
@@ -122,7 +104,7 @@ union ZZSTYPE
 
     struct betree_event* event;
 
-#line 126 "src/event_parser.h"
+#line 108 "src/event_parser.h"
 
 };
 typedef union ZZSTYPE ZZSTYPE;

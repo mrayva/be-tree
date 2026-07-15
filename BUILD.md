@@ -229,7 +229,7 @@ The filtered search APIs (`betree_search_ids`, `betree_search_with_event_ids`, a
 
 CTest runs the tests from the repository root so relative paths like `data/...` and generated DOT outputs under `tests/` resolve correctly.
 
-Pull requests and pushes to maintained branches run the complete suite with both GCC and Clang. A separate Clang job instruments the library and tests with AddressSanitizer and UndefinedBehaviorSanitizer; leak detection remains disabled until parser error-path allocations have Bison destructors.
+Pull requests and pushes to maintained branches run the complete suite with both GCC and Clang. A separate Clang job instruments the library and tests with AddressSanitizer and UndefinedBehaviorSanitizer. The event parser and normal event-search suite also run with LeakSanitizer enabled to verify malformed-input cleanup and tree teardown; leak detection remains disabled for the remaining legacy suites until their fixture ownership is audited.
 
 ### Benchmark-Labeled Tests
 The heavier benchmark-style tests are registered with the `benchmark` label:

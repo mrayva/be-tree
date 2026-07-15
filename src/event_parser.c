@@ -548,10 +548,10 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    94,    94,    95,    98,    99,   102,   103,   106,   107,
-     108,   109,   110,   111,   112,   113,   114,   116,   117,   120,
-     121,   124,   125,   128,   130,   132,   135,   136,   139,   142,
-     143,   146,   149,   150,   154,   157,   160,   161,   165,   167
+       0,   106,   106,   107,   110,   111,   114,   115,   118,   119,
+     120,   121,   122,   143,   144,   145,   146,   148,   149,   152,
+     153,   156,   157,   160,   162,   164,   167,   168,   171,   174,
+     175,   178,   181,   182,   186,   189,   192,   193,   197,   199
 };
 #endif
 
@@ -782,91 +782,91 @@ yy_symbol_value_print (FILE *yyo,
   switch (yykind)
     {
     case YYSYMBOL_EVENT_INTEGER: /* EVENT_INTEGER  */
-#line 83 "src/event_parser.y"
+#line 95 "src/event_parser.y"
          { fprintf(yyoutput, "%lld", ((*yyvaluep).integer_value)); }
 #line 788 "src/event_parser.c"
         break;
 
     case YYSYMBOL_EVENT_FLOAT: /* EVENT_FLOAT  */
-#line 84 "src/event_parser.y"
+#line 96 "src/event_parser.y"
          { fprintf(yyoutput, "%.2f", ((*yyvaluep).float_value)); }
 #line 794 "src/event_parser.c"
         break;
 
     case YYSYMBOL_EVENT_STRING: /* EVENT_STRING  */
-#line 85 "src/event_parser.y"
+#line 97 "src/event_parser.y"
          { fprintf(yyoutput, "%s", ((*yyvaluep).string)); }
 #line 800 "src/event_parser.c"
         break;
 
     case YYSYMBOL_integer: /* integer  */
-#line 83 "src/event_parser.y"
+#line 95 "src/event_parser.y"
          { fprintf(yyoutput, "%lld", ((*yyvaluep).integer_value)); }
 #line 806 "src/event_parser.c"
         break;
 
     case YYSYMBOL_float: /* float  */
-#line 84 "src/event_parser.y"
+#line 96 "src/event_parser.y"
          { fprintf(yyoutput, "%.2f", ((*yyvaluep).float_value)); }
 #line 812 "src/event_parser.c"
         break;
 
     case YYSYMBOL_string: /* string  */
-#line 86 "src/event_parser.y"
+#line 98 "src/event_parser.y"
          { fprintf(yyoutput, "%s", ((*yyvaluep).string_value).string); }
 #line 818 "src/event_parser.c"
         break;
 
     case YYSYMBOL_empty_list_value: /* empty_list_value  */
-#line 87 "src/event_parser.y"
+#line 99 "src/event_parser.y"
          { fprintf(yyoutput, "%zu integers", ((*yyvaluep).integer_list_value).count); }
 #line 824 "src/event_parser.c"
         break;
 
     case YYSYMBOL_integer_list_value: /* integer_list_value  */
-#line 87 "src/event_parser.y"
+#line 99 "src/event_parser.y"
          { fprintf(yyoutput, "%zu integers", ((*yyvaluep).integer_list_value).count); }
 #line 830 "src/event_parser.c"
         break;
 
     case YYSYMBOL_integer_list_loop: /* integer_list_loop  */
-#line 87 "src/event_parser.y"
+#line 99 "src/event_parser.y"
          { fprintf(yyoutput, "%zu integers", ((*yyvaluep).integer_list_value).count); }
 #line 836 "src/event_parser.c"
         break;
 
     case YYSYMBOL_string_list_value: /* string_list_value  */
-#line 88 "src/event_parser.y"
+#line 100 "src/event_parser.y"
          { fprintf(yyoutput, "%zu strings", ((*yyvaluep).string_list_value).count); }
 #line 842 "src/event_parser.c"
         break;
 
     case YYSYMBOL_string_list_loop: /* string_list_loop  */
-#line 88 "src/event_parser.y"
+#line 100 "src/event_parser.y"
          { fprintf(yyoutput, "%zu strings", ((*yyvaluep).string_list_value).count); }
 #line 848 "src/event_parser.c"
         break;
 
     case YYSYMBOL_segments_value: /* segments_value  */
-#line 89 "src/event_parser.y"
+#line 101 "src/event_parser.y"
          { fprintf(yyoutput, "%zu segments", ((*yyvaluep).segments_list_value).size); }
 #line 854 "src/event_parser.c"
         break;
 
     case YYSYMBOL_segments_loop: /* segments_loop  */
-#line 89 "src/event_parser.y"
+#line 101 "src/event_parser.y"
          { fprintf(yyoutput, "%zu segments", ((*yyvaluep).segments_list_value).size); }
 #line 860 "src/event_parser.c"
         break;
 
     case YYSYMBOL_frequencies_value: /* frequencies_value  */
-#line 90 "src/event_parser.y"
+#line 102 "src/event_parser.y"
          { fprintf(yyoutput, "%zu caps", ((*yyvaluep).frequencies_value).size); }
 #line 866 "src/event_parser.c"
         break;
 
     case YYSYMBOL_frequencies_loop: /* frequencies_loop  */
-#line 90 "src/event_parser.y"
+#line 102 "src/event_parser.y"
          { fprintf(yyoutput, "%zu caps", ((*yyvaluep).frequencies_value).size); }
 #line 872 "src/event_parser.c"
         break;
@@ -994,7 +994,107 @@ yydestruct (const char *yymsg,
   YY_SYMBOL_PRINT (yymsg, yykind, yyvaluep, yylocationp);
 
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
-  YY_USE (yykind);
+  switch (yykind)
+    {
+    case YYSYMBOL_EVENT_STRING: /* EVENT_STRING  */
+#line 82 "src/event_parser.y"
+            { bfree(((*yyvaluep).string)); }
+#line 1003 "src/event_parser.c"
+        break;
+
+    case YYSYMBOL_variable_loop: /* variable_loop  */
+#line 92 "src/event_parser.y"
+            { free_event(((*yyvaluep).event)); }
+#line 1009 "src/event_parser.c"
+        break;
+
+    case YYSYMBOL_variable: /* variable  */
+#line 91 "src/event_parser.y"
+            { betree_free_variable(((*yyvaluep).variable)); }
+#line 1015 "src/event_parser.c"
+        break;
+
+    case YYSYMBOL_value: /* value  */
+#line 90 "src/event_parser.y"
+            { free_value(((*yyvaluep).value)); }
+#line 1021 "src/event_parser.c"
+        break;
+
+    case YYSYMBOL_string: /* string  */
+#line 83 "src/event_parser.y"
+            { bfree((char*)((*yyvaluep).string_value).string); }
+#line 1027 "src/event_parser.c"
+        break;
+
+    case YYSYMBOL_empty_list_value: /* empty_list_value  */
+#line 84 "src/event_parser.y"
+            { if(((*yyvaluep).integer_list_value) != NULL) free_integer_list(((*yyvaluep).integer_list_value)); }
+#line 1033 "src/event_parser.c"
+        break;
+
+    case YYSYMBOL_integer_list_value: /* integer_list_value  */
+#line 84 "src/event_parser.y"
+            { if(((*yyvaluep).integer_list_value) != NULL) free_integer_list(((*yyvaluep).integer_list_value)); }
+#line 1039 "src/event_parser.c"
+        break;
+
+    case YYSYMBOL_integer_list_loop: /* integer_list_loop  */
+#line 84 "src/event_parser.y"
+            { if(((*yyvaluep).integer_list_value) != NULL) free_integer_list(((*yyvaluep).integer_list_value)); }
+#line 1045 "src/event_parser.c"
+        break;
+
+    case YYSYMBOL_string_list_value: /* string_list_value  */
+#line 85 "src/event_parser.y"
+            { if(((*yyvaluep).string_list_value) != NULL) free_string_list(((*yyvaluep).string_list_value)); }
+#line 1051 "src/event_parser.c"
+        break;
+
+    case YYSYMBOL_string_list_loop: /* string_list_loop  */
+#line 85 "src/event_parser.y"
+            { if(((*yyvaluep).string_list_value) != NULL) free_string_list(((*yyvaluep).string_list_value)); }
+#line 1057 "src/event_parser.c"
+        break;
+
+    case YYSYMBOL_segments_value: /* segments_value  */
+#line 86 "src/event_parser.y"
+            { if(((*yyvaluep).segments_list_value) != NULL) free_segments(((*yyvaluep).segments_list_value)); }
+#line 1063 "src/event_parser.c"
+        break;
+
+    case YYSYMBOL_segments_loop: /* segments_loop  */
+#line 86 "src/event_parser.y"
+            { if(((*yyvaluep).segments_list_value) != NULL) free_segments(((*yyvaluep).segments_list_value)); }
+#line 1069 "src/event_parser.c"
+        break;
+
+    case YYSYMBOL_segment_value: /* segment_value  */
+#line 87 "src/event_parser.y"
+            { if(((*yyvaluep).segment_value) != NULL) free_segment(((*yyvaluep).segment_value)); }
+#line 1075 "src/event_parser.c"
+        break;
+
+    case YYSYMBOL_frequencies_value: /* frequencies_value  */
+#line 88 "src/event_parser.y"
+            { if(((*yyvaluep).frequencies_value) != NULL) free_frequency_caps(((*yyvaluep).frequencies_value)); }
+#line 1081 "src/event_parser.c"
+        break;
+
+    case YYSYMBOL_frequencies_loop: /* frequencies_loop  */
+#line 88 "src/event_parser.y"
+            { if(((*yyvaluep).frequencies_value) != NULL) free_frequency_caps(((*yyvaluep).frequencies_value)); }
+#line 1087 "src/event_parser.c"
+        break;
+
+    case YYSYMBOL_frequency_value: /* frequency_value  */
+#line 89 "src/event_parser.y"
+            { if(((*yyvaluep).frequency_value) != NULL) free_frequency_cap(((*yyvaluep).frequency_value)); }
+#line 1093 "src/event_parser.c"
+        break;
+
+      default:
+        break;
+    }
   YY_IGNORE_MAYBE_UNINITIALIZED_END
 }
 
@@ -1263,241 +1363,255 @@ yyreduce:
   switch (yyn)
     {
   case 2: /* program: EVENT_LCURLY EVENT_RCURLY  */
-#line 94 "src/event_parser.y"
+#line 106 "src/event_parser.y"
                                                                 { root = make_empty_event(); }
-#line 1269 "src/event_parser.c"
+#line 1369 "src/event_parser.c"
     break;
 
   case 3: /* program: EVENT_LCURLY variable_loop EVENT_RCURLY  */
-#line 95 "src/event_parser.y"
+#line 107 "src/event_parser.y"
                                                                 { root = (yyvsp[-1].event); }
-#line 1275 "src/event_parser.c"
+#line 1375 "src/event_parser.c"
     break;
 
   case 4: /* variable_loop: variable  */
-#line 98 "src/event_parser.y"
+#line 110 "src/event_parser.y"
                                                             { (yyval.event) = make_empty_event(); add_variable((yyvsp[0].variable), (yyval.event)); }
-#line 1281 "src/event_parser.c"
+#line 1381 "src/event_parser.c"
     break;
 
   case 5: /* variable_loop: variable_loop EVENT_COMMA variable  */
-#line 99 "src/event_parser.y"
+#line 111 "src/event_parser.y"
                                                             { add_variable((yyvsp[0].variable), (yyvsp[-2].event)); (yyval.event) = (yyvsp[-2].event); }
-#line 1287 "src/event_parser.c"
+#line 1387 "src/event_parser.c"
     break;
 
   case 6: /* variable: EVENT_STRING EVENT_COLON value  */
-#line 102 "src/event_parser.y"
+#line 114 "src/event_parser.y"
                                                             { (yyval.variable) = make_pred((yyvsp[-2].string), INVALID_VAR, (yyvsp[0].value)); bfree((yyvsp[-2].string)); }
-#line 1293 "src/event_parser.c"
+#line 1393 "src/event_parser.c"
     break;
 
   case 7: /* variable: EVENT_STRING EVENT_COLON EVENT_NULL  */
-#line 103 "src/event_parser.y"
+#line 115 "src/event_parser.y"
                                                             { (yyval.variable) = NULL; bfree((yyvsp[-2].string)); }
-#line 1299 "src/event_parser.c"
+#line 1399 "src/event_parser.c"
     break;
 
   case 8: /* value: boolean  */
-#line 106 "src/event_parser.y"
+#line 118 "src/event_parser.y"
                                                             { (yyval.value).value_type = BETREE_BOOLEAN; (yyval.value).boolean_value = (yyvsp[0].boolean_value); }
-#line 1305 "src/event_parser.c"
+#line 1405 "src/event_parser.c"
     break;
 
   case 9: /* value: integer  */
-#line 107 "src/event_parser.y"
+#line 119 "src/event_parser.y"
                                                             { (yyval.value).value_type = BETREE_INTEGER; (yyval.value).integer_value = (yyvsp[0].integer_value); }
-#line 1311 "src/event_parser.c"
+#line 1411 "src/event_parser.c"
     break;
 
   case 10: /* value: float  */
-#line 108 "src/event_parser.y"
+#line 120 "src/event_parser.y"
                                                             { (yyval.value).value_type = BETREE_FLOAT; (yyval.value).float_value = (yyvsp[0].float_value); }
-#line 1317 "src/event_parser.c"
+#line 1417 "src/event_parser.c"
     break;
 
   case 11: /* value: string  */
-#line 109 "src/event_parser.y"
+#line 121 "src/event_parser.y"
                                                             { (yyval.value).value_type = BETREE_STRING; (yyval.value).string_value = (yyvsp[0].string_value); }
-#line 1323 "src/event_parser.c"
+#line 1423 "src/event_parser.c"
     break;
 
   case 12: /* value: empty_list_value  */
-#line 110 "src/event_parser.y"
+#line 122 "src/event_parser.y"
                                                             {
+                                                                /*
+                                                                 * Empty [] stays polymorphic on purpose.
+                                                                 *
+                                                                 * The parser uses BETREE_INTEGER_LIST as the canonical
+                                                                 * tag for [] but also stamps the same zero-sized
+                                                                 * allocation into the other list-capable slots. Later
+                                                                 * code relies on this so expressions like "var is empty"
+                                                                 * keep working across integer lists, string lists,
+                                                                 * segments, and frequency caps even though the event
+                                                                 * syntax for [] is untyped.
+                                                                 *
+                                                                 * See tests/event_parser_tests.c:
+                                                                 * test_empty_list_typed_preservation.
+                                                                 */
                                                                 (yyval.value).value_type = BETREE_INTEGER_LIST;
                                                                 (yyval.value).integer_list_value = (yyvsp[0].integer_list_value);
                                                                 (yyval.value).string_list_value = (struct betree_string_list*)(yyvsp[0].integer_list_value);
                                                                 (yyval.value).segments_value = (struct betree_segments*)(yyvsp[0].integer_list_value);
                                                                 (yyval.value).frequency_caps_value = (struct betree_frequency_caps*)(yyvsp[0].integer_list_value);
                                                             }
-#line 1329 "src/event_parser.c"
-    break;
-
-  case 13: /* value: integer_list_value  */
-#line 111 "src/event_parser.y"
-                                                            { (yyval.value).value_type = BETREE_INTEGER_LIST; (yyval.value).integer_list_value = (yyvsp[0].integer_list_value); }
-#line 1335 "src/event_parser.c"
-    break;
-
-  case 14: /* value: string_list_value  */
-#line 112 "src/event_parser.y"
-                                                            { (yyval.value).value_type = BETREE_STRING_LIST; (yyval.value).string_list_value = (yyvsp[0].string_list_value); }
-#line 1341 "src/event_parser.c"
-    break;
-
-  case 15: /* value: segments_value  */
-#line 113 "src/event_parser.y"
-                                                            { (yyval.value).value_type = BETREE_SEGMENTS; (yyval.value).segments_value = (yyvsp[0].segments_list_value); }
-#line 1347 "src/event_parser.c"
-    break;
-
-  case 16: /* value: frequencies_value  */
-#line 114 "src/event_parser.y"
-                                                            { (yyval.value).value_type = BETREE_FREQUENCY_CAPS; (yyval.value).frequency_caps_value = (yyvsp[0].frequencies_value); }
-#line 1353 "src/event_parser.c"
-    break;
-
-  case 17: /* boolean: EVENT_TRUE  */
-#line 116 "src/event_parser.y"
-                                                            { (yyval.boolean_value) = true; }
-#line 1359 "src/event_parser.c"
-    break;
-
-  case 18: /* boolean: EVENT_FALSE  */
-#line 117 "src/event_parser.y"
-                                                            { (yyval.boolean_value) = false; }
-#line 1365 "src/event_parser.c"
-    break;
-
-  case 19: /* integer: EVENT_INTEGER  */
-#line 120 "src/event_parser.y"
-                                                            { (yyval.integer_value) = (yyvsp[0].integer_value); }
-#line 1371 "src/event_parser.c"
-    break;
-
-  case 20: /* integer: EVENT_MINUS EVENT_INTEGER  */
-#line 121 "src/event_parser.y"
-                                                            { (yyval.integer_value) = - (yyvsp[0].integer_value); }
-#line 1377 "src/event_parser.c"
-    break;
-
-  case 21: /* float: EVENT_FLOAT  */
-#line 124 "src/event_parser.y"
-                                                            { (yyval.float_value) = (yyvsp[0].float_value); }
-#line 1383 "src/event_parser.c"
-    break;
-
-  case 22: /* float: EVENT_MINUS EVENT_FLOAT  */
-#line 125 "src/event_parser.y"
-                                                            { (yyval.float_value) = - (yyvsp[0].float_value); }
-#line 1389 "src/event_parser.c"
-    break;
-
-  case 23: /* string: EVENT_STRING  */
-#line 128 "src/event_parser.y"
-                                                            { (yyval.string_value).string = bstrdup((yyvsp[0].string)); (yyval.string_value).str = INVALID_STR; bfree((yyvsp[0].string)); }
-#line 1395 "src/event_parser.c"
-    break;
-
-  case 24: /* empty_list_value: EVENT_LSQUARE EVENT_RSQUARE  */
-#line 130 "src/event_parser.y"
-                                                            { (yyval.integer_list_value) = make_integer_list(); }
-#line 1401 "src/event_parser.c"
-    break;
-
-  case 25: /* integer_list_value: EVENT_LSQUARE integer_list_loop EVENT_RSQUARE  */
-#line 133 "src/event_parser.y"
-                                                            { (yyval.integer_list_value) = (yyvsp[-1].integer_list_value); }
-#line 1407 "src/event_parser.c"
-    break;
-
-  case 26: /* integer_list_loop: integer  */
-#line 135 "src/event_parser.y"
-                                                            { (yyval.integer_list_value) = make_integer_list(); add_integer_list_value((yyvsp[0].integer_value), (yyval.integer_list_value)); }
-#line 1413 "src/event_parser.c"
-    break;
-
-  case 27: /* integer_list_loop: integer_list_loop EVENT_COMMA integer  */
-#line 136 "src/event_parser.y"
-                                                            { add_integer_list_value((yyvsp[0].integer_value), (yyvsp[-2].integer_list_value)); (yyval.integer_list_value) = (yyvsp[-2].integer_list_value); }
-#line 1419 "src/event_parser.c"
-    break;
-
-  case 28: /* string_list_value: EVENT_LSQUARE string_list_loop EVENT_RSQUARE  */
-#line 140 "src/event_parser.y"
-                                                            { (yyval.string_list_value) = (yyvsp[-1].string_list_value); }
-#line 1425 "src/event_parser.c"
-    break;
-
-  case 29: /* string_list_loop: string  */
-#line 142 "src/event_parser.y"
-                                                            { (yyval.string_list_value) = make_string_list(); add_string_list_value((yyvsp[0].string_value), (yyval.string_list_value)); }
-#line 1431 "src/event_parser.c"
-    break;
-
-  case 30: /* string_list_loop: string_list_loop EVENT_COMMA string  */
-#line 143 "src/event_parser.y"
-                                                            { add_string_list_value((yyvsp[0].string_value), (yyvsp[-2].string_list_value)); (yyval.string_list_value) = (yyvsp[-2].string_list_value); }
-#line 1437 "src/event_parser.c"
-    break;
-
-  case 31: /* segments_value: EVENT_LSQUARE segments_loop EVENT_RSQUARE  */
-#line 147 "src/event_parser.y"
-                                                            { (yyval.segments_list_value) = (yyvsp[-1].segments_list_value); }
-#line 1443 "src/event_parser.c"
-    break;
-
-  case 32: /* segments_loop: segment_value  */
-#line 149 "src/event_parser.y"
-                                                            { (yyval.segments_list_value) = make_segments(); add_segment((yyvsp[0].segment_value), (yyval.segments_list_value)); }
 #line 1449 "src/event_parser.c"
     break;
 
-  case 33: /* segments_loop: segments_loop EVENT_COMMA segment_value  */
-#line 151 "src/event_parser.y"
-                                                            { add_segment((yyvsp[0].segment_value), (yyvsp[-2].segments_list_value)); (yyval.segments_list_value) = (yyvsp[-2].segments_list_value); }
+  case 13: /* value: integer_list_value  */
+#line 143 "src/event_parser.y"
+                                                            { (yyval.value).value_type = BETREE_INTEGER_LIST; (yyval.value).integer_list_value = (yyvsp[0].integer_list_value); }
 #line 1455 "src/event_parser.c"
     break;
 
-  case 34: /* segment_value: EVENT_LSQUARE integer EVENT_COMMA integer EVENT_RSQUARE  */
-#line 155 "src/event_parser.y"
-                                                            { (yyval.segment_value) = make_segment((yyvsp[-3].integer_value), (yyvsp[-1].integer_value)); }
+  case 14: /* value: string_list_value  */
+#line 144 "src/event_parser.y"
+                                                            { (yyval.value).value_type = BETREE_STRING_LIST; (yyval.value).string_list_value = (yyvsp[0].string_list_value); }
 #line 1461 "src/event_parser.c"
     break;
 
-  case 35: /* frequencies_value: EVENT_LSQUARE frequencies_loop EVENT_RSQUARE  */
-#line 158 "src/event_parser.y"
-                                                            { (yyval.frequencies_value) = (yyvsp[-1].frequencies_value); }
+  case 15: /* value: segments_value  */
+#line 145 "src/event_parser.y"
+                                                            { (yyval.value).value_type = BETREE_SEGMENTS; (yyval.value).segments_value = (yyvsp[0].segments_list_value); }
 #line 1467 "src/event_parser.c"
     break;
 
-  case 36: /* frequencies_loop: frequency_value  */
-#line 160 "src/event_parser.y"
-                                                            { (yyval.frequencies_value) = make_frequency_caps(); add_frequency((yyvsp[0].frequency_value), (yyval.frequencies_value)); }
+  case 16: /* value: frequencies_value  */
+#line 146 "src/event_parser.y"
+                                                            { (yyval.value).value_type = BETREE_FREQUENCY_CAPS; (yyval.value).frequency_caps_value = (yyvsp[0].frequencies_value); }
 #line 1473 "src/event_parser.c"
     break;
 
-  case 37: /* frequencies_loop: frequencies_loop EVENT_COMMA frequency_value  */
-#line 162 "src/event_parser.y"
-                                                            { add_frequency((yyvsp[0].frequency_value), (yyvsp[-2].frequencies_value)); (yyval.frequencies_value) = (yyvsp[-2].frequencies_value); }
+  case 17: /* boolean: EVENT_TRUE  */
+#line 148 "src/event_parser.y"
+                                                            { (yyval.boolean_value) = true; }
 #line 1479 "src/event_parser.c"
     break;
 
-  case 38: /* frequency_value: EVENT_LSQUARE EVENT_STRING EVENT_COMMA integer EVENT_COMMA string EVENT_COMMA integer EVENT_COMMA integer EVENT_RSQUARE  */
-#line 166 "src/event_parser.y"
-                                                            { (yyval.frequency_value) = make_frequency_cap((yyvsp[-9].string), (yyvsp[-7].integer_value), (yyvsp[-5].string_value), true, (yyvsp[-1].integer_value), (yyvsp[-3].integer_value)); bfree((yyvsp[-9].string)); }
+  case 18: /* boolean: EVENT_FALSE  */
+#line 149 "src/event_parser.y"
+                                                            { (yyval.boolean_value) = false; }
 #line 1485 "src/event_parser.c"
     break;
 
-  case 39: /* frequency_value: EVENT_LSQUARE EVENT_LSQUARE EVENT_STRING EVENT_COMMA integer EVENT_COMMA string EVENT_RSQUARE EVENT_COMMA integer EVENT_COMMA integer EVENT_RSQUARE  */
-#line 168 "src/event_parser.y"
-                                                            { (yyval.frequency_value) = make_frequency_cap((yyvsp[-10].string), (yyvsp[-8].integer_value), (yyvsp[-6].string_value), true, (yyvsp[-1].integer_value), (yyvsp[-3].integer_value)); bfree((yyvsp[-10].string)); }
+  case 19: /* integer: EVENT_INTEGER  */
+#line 152 "src/event_parser.y"
+                                                            { (yyval.integer_value) = (yyvsp[0].integer_value); }
 #line 1491 "src/event_parser.c"
     break;
 
+  case 20: /* integer: EVENT_MINUS EVENT_INTEGER  */
+#line 153 "src/event_parser.y"
+                                                            { (yyval.integer_value) = - (yyvsp[0].integer_value); }
+#line 1497 "src/event_parser.c"
+    break;
 
-#line 1495 "src/event_parser.c"
+  case 21: /* float: EVENT_FLOAT  */
+#line 156 "src/event_parser.y"
+                                                            { (yyval.float_value) = (yyvsp[0].float_value); }
+#line 1503 "src/event_parser.c"
+    break;
+
+  case 22: /* float: EVENT_MINUS EVENT_FLOAT  */
+#line 157 "src/event_parser.y"
+                                                            { (yyval.float_value) = - (yyvsp[0].float_value); }
+#line 1509 "src/event_parser.c"
+    break;
+
+  case 23: /* string: EVENT_STRING  */
+#line 160 "src/event_parser.y"
+                                                            { (yyval.string_value).string = bstrdup((yyvsp[0].string)); (yyval.string_value).str = INVALID_STR; bfree((yyvsp[0].string)); }
+#line 1515 "src/event_parser.c"
+    break;
+
+  case 24: /* empty_list_value: EVENT_LSQUARE EVENT_RSQUARE  */
+#line 162 "src/event_parser.y"
+                                                            { (yyval.integer_list_value) = make_integer_list(); }
+#line 1521 "src/event_parser.c"
+    break;
+
+  case 25: /* integer_list_value: EVENT_LSQUARE integer_list_loop EVENT_RSQUARE  */
+#line 165 "src/event_parser.y"
+                                                            { (yyval.integer_list_value) = (yyvsp[-1].integer_list_value); }
+#line 1527 "src/event_parser.c"
+    break;
+
+  case 26: /* integer_list_loop: integer  */
+#line 167 "src/event_parser.y"
+                                                            { (yyval.integer_list_value) = make_integer_list(); add_integer_list_value((yyvsp[0].integer_value), (yyval.integer_list_value)); }
+#line 1533 "src/event_parser.c"
+    break;
+
+  case 27: /* integer_list_loop: integer_list_loop EVENT_COMMA integer  */
+#line 168 "src/event_parser.y"
+                                                            { add_integer_list_value((yyvsp[0].integer_value), (yyvsp[-2].integer_list_value)); (yyval.integer_list_value) = (yyvsp[-2].integer_list_value); }
+#line 1539 "src/event_parser.c"
+    break;
+
+  case 28: /* string_list_value: EVENT_LSQUARE string_list_loop EVENT_RSQUARE  */
+#line 172 "src/event_parser.y"
+                                                            { (yyval.string_list_value) = (yyvsp[-1].string_list_value); }
+#line 1545 "src/event_parser.c"
+    break;
+
+  case 29: /* string_list_loop: string  */
+#line 174 "src/event_parser.y"
+                                                            { (yyval.string_list_value) = make_string_list(); add_string_list_value((yyvsp[0].string_value), (yyval.string_list_value)); }
+#line 1551 "src/event_parser.c"
+    break;
+
+  case 30: /* string_list_loop: string_list_loop EVENT_COMMA string  */
+#line 175 "src/event_parser.y"
+                                                            { add_string_list_value((yyvsp[0].string_value), (yyvsp[-2].string_list_value)); (yyval.string_list_value) = (yyvsp[-2].string_list_value); }
+#line 1557 "src/event_parser.c"
+    break;
+
+  case 31: /* segments_value: EVENT_LSQUARE segments_loop EVENT_RSQUARE  */
+#line 179 "src/event_parser.y"
+                                                            { (yyval.segments_list_value) = (yyvsp[-1].segments_list_value); }
+#line 1563 "src/event_parser.c"
+    break;
+
+  case 32: /* segments_loop: segment_value  */
+#line 181 "src/event_parser.y"
+                                                            { (yyval.segments_list_value) = make_segments(); add_segment((yyvsp[0].segment_value), (yyval.segments_list_value)); }
+#line 1569 "src/event_parser.c"
+    break;
+
+  case 33: /* segments_loop: segments_loop EVENT_COMMA segment_value  */
+#line 183 "src/event_parser.y"
+                                                            { add_segment((yyvsp[0].segment_value), (yyvsp[-2].segments_list_value)); (yyval.segments_list_value) = (yyvsp[-2].segments_list_value); }
+#line 1575 "src/event_parser.c"
+    break;
+
+  case 34: /* segment_value: EVENT_LSQUARE integer EVENT_COMMA integer EVENT_RSQUARE  */
+#line 187 "src/event_parser.y"
+                                                            { (yyval.segment_value) = make_segment((yyvsp[-3].integer_value), (yyvsp[-1].integer_value)); }
+#line 1581 "src/event_parser.c"
+    break;
+
+  case 35: /* frequencies_value: EVENT_LSQUARE frequencies_loop EVENT_RSQUARE  */
+#line 190 "src/event_parser.y"
+                                                            { (yyval.frequencies_value) = (yyvsp[-1].frequencies_value); }
+#line 1587 "src/event_parser.c"
+    break;
+
+  case 36: /* frequencies_loop: frequency_value  */
+#line 192 "src/event_parser.y"
+                                                            { (yyval.frequencies_value) = make_frequency_caps(); add_frequency((yyvsp[0].frequency_value), (yyval.frequencies_value)); }
+#line 1593 "src/event_parser.c"
+    break;
+
+  case 37: /* frequencies_loop: frequencies_loop EVENT_COMMA frequency_value  */
+#line 194 "src/event_parser.y"
+                                                            { add_frequency((yyvsp[0].frequency_value), (yyvsp[-2].frequencies_value)); (yyval.frequencies_value) = (yyvsp[-2].frequencies_value); }
+#line 1599 "src/event_parser.c"
+    break;
+
+  case 38: /* frequency_value: EVENT_LSQUARE EVENT_STRING EVENT_COMMA integer EVENT_COMMA string EVENT_COMMA integer EVENT_COMMA integer EVENT_RSQUARE  */
+#line 198 "src/event_parser.y"
+                                                            { (yyval.frequency_value) = make_frequency_cap((yyvsp[-9].string), (yyvsp[-7].integer_value), (yyvsp[-5].string_value), true, (yyvsp[-1].integer_value), (yyvsp[-3].integer_value)); bfree((yyvsp[-9].string)); }
+#line 1605 "src/event_parser.c"
+    break;
+
+  case 39: /* frequency_value: EVENT_LSQUARE EVENT_LSQUARE EVENT_STRING EVENT_COMMA integer EVENT_COMMA string EVENT_RSQUARE EVENT_COMMA integer EVENT_COMMA integer EVENT_RSQUARE  */
+#line 200 "src/event_parser.y"
+                                                            { (yyval.frequency_value) = make_frequency_cap((yyvsp[-10].string), (yyvsp[-8].integer_value), (yyvsp[-6].string_value), true, (yyvsp[-1].integer_value), (yyvsp[-3].integer_value)); bfree((yyvsp[-10].string)); }
+#line 1611 "src/event_parser.c"
+    break;
+
+
+#line 1615 "src/event_parser.c"
 
       default: break;
     }
@@ -1690,7 +1804,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 171 "src/event_parser.y"
+#line 203 "src/event_parser.y"
 
 
 #if defined(__GNUC__)
@@ -1719,9 +1833,12 @@ int event_parse(const char *text, struct betree_event** event)
     
     if(rc == 0) {
         *event = root;
+        root = NULL;
         return 0;
     }
     else {
+        free_event(root);
+        root = NULL;
         return -1;
     }
 }

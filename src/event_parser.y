@@ -79,6 +79,18 @@
 
 %start program
 
+%destructor { bfree($$); } <string>
+%destructor { bfree((char*)$$.string); } <string_value>
+%destructor { if($$ != NULL) free_integer_list($$); } <integer_list_value>
+%destructor { if($$ != NULL) free_string_list($$); } <string_list_value>
+%destructor { if($$ != NULL) free_segments($$); } <segments_list_value>
+%destructor { if($$ != NULL) free_segment($$); } <segment_value>
+%destructor { if($$ != NULL) free_frequency_caps($$); } <frequencies_value>
+%destructor { if($$ != NULL) free_frequency_cap($$); } <frequency_value>
+%destructor { free_value($$); } <value>
+%destructor { betree_free_variable($$); } <variable>
+%destructor { free_event($$); } <event>
+
 
 %printer { fprintf(yyoutput, "%lld", $$); } <integer_value>
 %printer { fprintf(yyoutput, "%.2f", $$); } <float_value>
@@ -216,9 +228,12 @@ int event_parse(const char *text, struct betree_event** event)
     
     if(rc == 0) {
         *event = root;
+        root = NULL;
         return 0;
     }
     else {
+        free_event(root);
+        root = NULL;
         return -1;
     }
 }

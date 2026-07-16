@@ -4,8 +4,8 @@
 
 .DEFAULT_GOAL := help
 
-LEX ?= flex
-YACC ?= bison
+LEX = flex
+YACC = bison
 YFLAGS ?= -dv
 
 GENERATED = src/lexer.c src/parser.c src/event_lexer.c src/event_parser.c \

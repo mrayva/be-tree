@@ -88,6 +88,11 @@
 %type<integer_list_value> integer_list_value integer_list_loop
 %type<string_list_value> string_list_value string_list_loop
 
+%destructor { bfree($$); } <string>
+%destructor { if($$ != NULL) free_ast_node($$); } <node>
+%destructor { if($$ != NULL) free_integer_list($$); } <integer_list_value>
+%destructor { if($$ != NULL) free_string_list($$); } <string_list_value>
+
 %left TCEQ TCNE TCGT TCGE TCLT TCLE
 %left TOR
 %left TAND 
@@ -124,7 +129,7 @@ string_list_loop    : string                                { $$ = make_string_l
 ;       
 
 expr                : TLPAREN expr TRPAREN                  { $$ = $2; }
-                    | TANNOTATION '{' expr '}'              { $$ = $3; }
+                    | TANNOTATION '{' expr '}'              { $$ = $3; bfree($1); }
                     | num_comp_expr                         { $$ = $1; }
                     | eq_expr                               { $$ = $1; }
                     | set_expr                              { $$ = $1; }

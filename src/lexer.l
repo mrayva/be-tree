@@ -75,6 +75,8 @@
 \'(\\.|[^'\\])*\'           SAVE_STRING; return TSTRING;
 [a-zA-Z_][a-zA-Z0-9_-]*     SAVE_IDENTIFIER; return TIDENTIFIER;
 \[[a-zA-Z_][a-zA-Z0-9_-]*\] SAVE_ANNOTATION; return TANNOTATION;
+"{"                         return '{';
+"}"                         return '}';
 -?[0-9]+                    SAVE_INTEGER; return TINTEGER;
 -?[0-9]+\.[0-9]*            SAVE_FLOAT; return TFLOAT;
 .                           printf("Unknown token! (%s)\n", yytext); yyterminate();

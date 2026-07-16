@@ -232,6 +232,24 @@ int test_invalid_expressions()
     mu_assert(parse("a = - -1.0", &node) != 0, "double float minus");
     mu_assert(node == NULL, "no node on double float minus");
 
+    node = NULL;
+    mu_assert(parse("[tag] { a = 1", &node) != 0, "unclosed annotation block");
+    mu_assert(node == NULL, "no node on unclosed annotation block");
+
+    return 0;
+}
+
+int test_annotation()
+{
+    struct ast_node* annotated = NULL;
+    struct ast_node* plain = NULL;
+
+    parse("[tag] { a = 1 }", &annotated);
+    parse("a = 1", &plain);
+    mu_assert(eq_expr(annotated, plain), "annotation should not change the parsed expression");
+    free_ast_node(annotated);
+    free_ast_node(plain);
+
     return 0;
 }
 
@@ -456,6 +474,7 @@ int all_tests()
     mu_run_test(test_bool);
     mu_run_test(test_string);
     mu_run_test(test_invalid_expressions);
+    mu_run_test(test_annotation);
     mu_run_test(test_integer_set);
     mu_run_test(test_string_set);
     mu_run_test(test_integer_list);

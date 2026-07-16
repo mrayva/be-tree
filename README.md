@@ -162,7 +162,6 @@ The event API is slot-based, like the C API:
 * Short-circuiting is at the sub level, not at the individual node level. When it's at the node level, it's actually slower.
 
 ## TODO
-* Float domain should allow a way to control the splitting of float values. Right now it splits like integers but that won't work well for values that have a small domain (eg -0.01 to 0.01). Use domain to find a good split
 * betree_remove should remove useless preds from the memoize
 * What if we wrote the lexers/parsers to have the set of possible attributes directly since we know them. While we never use the string attribute during runtime, it slows insertion.
 

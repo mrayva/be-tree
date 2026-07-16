@@ -824,24 +824,16 @@ static struct value_bounds split_value_bound(struct value_bound bound)
             double start = bound.fmin, end = bound.fmax;
             lbound.fmin = start;
             rbound.fmax = end;
-            if(fabs(end - start) > 2) {
-                double middle = start + ceil((end - start) / 2);
-                lbound.fmax = middle;
-                rbound.fmin = middle;
+            double middle = start + (end - start) / 2;
+            if(feq(middle, start) || feq(middle, end)) {
+                middle = std::nextafter(start, end);
             }
-            else if(feq(fabs(end - start), 2)) {
-                double middle = start + 1;
-                lbound.fmax = middle;
-                rbound.fmin = middle;
-            }
-            else if(feq(fabs(end - start), 1)) {
-                lbound.fmax = start;
-                rbound.fmin = end;
-            }
-            else {
+            if(feq(middle, start) || feq(middle, end)) {
                 std::fprintf(stderr, "%s trying to split an unsplitable bound\n", __func__);
                 std::abort();
             }
+            lbound.fmax = middle;
+            rbound.fmin = middle;
             break;
         }
         case(BETREE_BOOLEAN): {

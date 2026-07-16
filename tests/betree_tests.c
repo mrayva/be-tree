@@ -583,6 +583,36 @@ int test_negative_float()
     return 0;
 }
 
+int test_narrow_float_split()
+{
+    struct betree* tree = betree_make();
+    tree->config->lnode_max_cap = 1;
+    add_attr_domain_bounded_f(tree->config, "a", false, 0.0, 0.01);
+
+    mu_assert(betree_insert(tree, 1, "a = 0.001"), "");
+    mu_assert(betree_insert(tree, 2, "a = 0.009"), "");
+    mu_assert(betree_insert(tree, 3, "a = 0.005"), "");
+
+    const struct cdir* cdir = tree->cnode->pdir->pnodes[0]->cdir;
+    const struct cdir* lchild = cdir->lchild;
+    const struct cdir* rchild = cdir->rchild;
+
+    mu_assert(cdir->bound.value_type == BETREE_FLOAT && feq(cdir->bound.fmin, 0.0)
+            && feq(cdir->bound.fmax, 0.01) && lchild->bound.value_type == BETREE_FLOAT
+            && feq(lchild->bound.fmin, 0.0) && feq(lchild->bound.fmax, 0.005)
+            && rchild->bound.value_type == BETREE_FLOAT && feq(rchild->bound.fmin, 0.005)
+            && feq(rchild->bound.fmax, 0.01),
+        "narrow float cdirs have proper bounds");
+
+    struct report* report = make_report();
+    mu_assert(betree_search(tree, "{\"a\": 0.009}", report), "");
+    mu_assert(report->matched == 1, "narrow float split still matches");
+    free_report(report);
+
+    betree_free(tree);
+    return 0;
+}
+
 int test_integer_set()
 {
     struct betree* tree = betree_make();
@@ -1767,6 +1797,7 @@ int all_tests()
     mu_run_test(test_string_wont_split);
     mu_run_test(test_negative_int);
     mu_run_test(test_negative_float);
+    mu_run_test(test_narrow_float_split);
     mu_run_test(test_integer_set);
     mu_run_test(test_integer_set_reverse);
     mu_run_test(test_string_set);
@@ -1800,4 +1831,3 @@ int all_tests()
 }
 
 RUN_TESTS()
-

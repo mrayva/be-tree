@@ -556,6 +556,7 @@ bool betree_insert_with_constants_err(struct betree_err* tree,
     }
     if(!assign_constants(constant_count, constants, node)) {
         std::fprintf(stderr, "Can't assign constants %lu\n", id);
+        free_ast_node(node);
         return false;
     }
     assign_str_id(tree->config, node, false);

@@ -7,6 +7,7 @@
 
 #include "alloc.h"
 #include "betree.h"
+#include "betree_err.h"
 #include "debug.h"
 #include "helper.h"
 #include "minunit.h"
@@ -346,11 +347,16 @@ int test_special()
 int test_insert_rejections()
 {
     struct betree* tree = betree_make();
+    struct betree_err* tree_err = betree_make_err();
 
     add_attr_domain_bounded_i(tree->config, "age", false, 0, 10);
     add_attr_domain_s(tree->config, "country", false);
     add_attr_domain_i(tree->config, "now", false);
     add_attr_domain_frequency(tree->config, "frequency_caps", false);
+    add_attr_domain_bounded_i(tree_err->config, "age", false, 0, 10);
+    add_attr_domain_s(tree_err->config, "country", false);
+    add_attr_domain_i(tree_err->config, "now", false);
+    add_attr_domain_frequency(tree_err->config, "frequency_caps", false);
 
     mu_assert(!betree_insert(tree, 1, "missing = 1"), "");
     mu_assert(!betree_insert(tree, 2, "country = 1"), "");
@@ -366,9 +372,14 @@ int test_insert_rejections()
         !betree_insert_with_constants(
             tree, 4, constant_count, constants, "within_frequency_cap(\"flight\", \"ns\", 100, 0)"),
         "");
+    mu_assert(
+        !betree_insert_with_constants_err(
+            tree_err, 4, constant_count, constants, "within_frequency_cap(\"flight\", \"ns\", 100, 0)"),
+        "");
 
     betree_free_constants(constant_count, (struct betree_constant**)constants);
     betree_free(tree);
+    betree_free_err(tree_err);
     return 0;
 }
 

@@ -54,6 +54,7 @@ set(BETREE_CPP_SOURCES
     tree_err.cpp    # Error tree operations and subscriptions (1595 LOC)
     tree.cpp        # Tree operations and subscriptions (2346 LOC)
     ast.cpp         # AST node creation and matching (3396 LOC)
+    flat.cpp        # Flat tree serialization and continuation search
     helper.cpp      # Helper functions for variable parsing and tree operations (106 LOC)
     helper_err.cpp  # Helper functions for error tree variable parsing (106 LOC)
 )

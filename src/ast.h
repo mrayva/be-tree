@@ -319,6 +319,16 @@ bool match_node_counting(const struct betree_variable** preds,
     struct memoize* memoize,
     struct report_counting* report);
 
+// Tri-state result for the flat/continuation search path: MATCH_UNKNOWN
+// means the expression touches a BETREE_PRED_UNFETCHED variable and
+// couldn't be resolved with the variables fetched so far.
+enum match_result { MATCH_FALSE = 0, MATCH_TRUE = 1, MATCH_UNKNOWN = 2 };
+
+enum match_result match_node_tri(const struct betree_variable** preds,
+    const struct ast_node* node,
+    struct memoize* memoize,
+    struct report* report);
+
 struct value_bound get_variable_bound(
     const struct attr_domain* domain, const struct ast_node* node);
 

@@ -10,11 +10,20 @@ typedef uint64_t betree_var_t;
 struct config;
 struct cnode;
 struct subs_data;
+struct flat_search_state;
+
+// Serialized form of a betree, produced by betree_flatten(), consumed by
+// the flat/continuation search path (betree_search_flat).
+struct flat_tree {
+    uint8_t* buf;
+    size_t len;
+};
 
 struct betree {
     struct config* config;
     struct cnode* cnode;
     struct subs_data* subs_data;
+    struct flat_tree flat;
 };
 
 struct report {
@@ -28,6 +37,9 @@ struct report {
     void *arg;
     betree_var_t last_var;
     betree_var_t* memoize_vars;
+    // Saved state for a suspended betree_search_flat() call. NULL except
+    // between a FLAT_SEARCH_YIELD and the matching continuation call.
+    struct flat_search_state* state;
 };
 
 #define NIL_VAR ((betree_var_t)-1)
@@ -67,6 +79,10 @@ enum betree_value_type_e {
     BETREE_SEGMENTS,
     BETREE_FREQUENCY_CAPS,
     BETREE_INTEGER_ENUM,
+    // Sentinel value type for flat-search continuation: marks an event slot
+    // as deliberately not-yet-fetched, distinct from "absent"/undefined.
+    // Only meaningful to the flat/continuation search path.
+    BETREE_UNFETCHED,
 };
 
 struct betree_integer_list;
@@ -158,6 +174,12 @@ struct betree_variable* betree_make_integer_list_variable(const char* name, stru
 struct betree_variable* betree_make_string_list_variable(const char* name, struct betree_string_list* value);
 struct betree_variable* betree_make_segments_variable(const char* name, struct betree_segments* value);
 struct betree_variable* betree_make_frequency_caps_variable(const char* name, struct betree_frequency_caps* value);
+// Marks a variable as deliberately not-yet-fetched, for use with the flat
+// continuation-search API only. Attaching one of these to an event and
+// searching it with the regular betree_search/betree_search_with_event
+// family is undefined: those paths only check for a null pointer and will
+// silently treat it as a defined, zero-valued variable instead of unknown.
+struct betree_variable* betree_make_unfetched_variable(const char* name);
 
 struct betree_event* betree_make_event(const struct betree* betree);
 void betree_set_variable(struct betree_event* event, size_t index, struct betree_variable* variable);
@@ -209,5 +231,18 @@ void betree_free_frequency_cap(struct betree_frequency_cap* value);
 void betree_free_frequency_caps(struct betree_frequency_caps* value);
 
 void betree_prepare_sub_data(struct betree* tree);
+
+/*
+ * Flat tree / continuation search
+ */
+enum flat_search_result {
+    FLAT_SEARCH_DONE = 0,
+    FLAT_SEARCH_YIELD = 1,
+};
+
+void betree_flatten(struct betree* tree);
+void betree_free_flat(struct flat_tree* ft);
+enum flat_search_result betree_search_flat(
+    struct betree* tree, struct betree_event* event, struct report* report);
 
 #endif  // __cplusplus

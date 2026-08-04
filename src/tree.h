@@ -22,6 +22,16 @@ struct betree_variable {
     struct value value;
 };
 
+// Sentinel pred for flat-search continuation: marks a preds[] slot as
+// deliberately not-yet-fetched. Only meaningful to the flat/continuation
+// search path (betree_search_flat and its tri-state evaluator) -- passing
+// it (or an event containing a BETREE_UNFETCHED variable) into the regular
+// betree_search/match_node path is undefined: get_variable() and friends
+// only check for a null pointer, so the sentinel's zero-initialized value
+// (value_type == BETREE_BOOLEAN, boolean_value == false) will be silently
+// read as a real, defined "false" instead of being recognized as unknown.
+extern const struct betree_variable BETREE_PRED_UNFETCHED;
+
 struct short_circuit {
     uint64_t* pass;
     uint64_t* fail;

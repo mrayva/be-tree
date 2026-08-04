@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "ast.h"
 #include "betree.h"
 #include "config.h"
 #include "memoize.h"
@@ -13,6 +14,16 @@ struct betree_variable {
     struct attr_var attr_var;
     struct value value;
 };
+
+// Sentinel pred for flat-search continuation: marks a preds[] slot as
+// deliberately not-yet-fetched. Only meaningful to the flat/continuation
+// search path (betree_search_flat and its tri-state evaluator) -- passing
+// it (or an event containing a BETREE_UNFETCHED variable) into the regular
+// betree_search/match_node path is undefined: get_variable() and friends
+// only check for a null pointer, so the sentinel's zero-initialized value
+// (value_type == BETREE_BOOLEAN, boolean_value == false) will be silently
+// read as a real, defined "false" instead of being recognized as unknown.
+extern const struct betree_variable BETREE_PRED_UNFETCHED;
 
 struct short_circuit {
     std::uint64_t* pass;
@@ -138,6 +149,13 @@ bool match_sub(std::size_t attr_domains_count,
     const std::uint64_t* undefined);
 
 bool match_sub_(std::size_t attr_domains_count,
+    const struct betree_variable** preds,
+    const struct betree_sub* sub,
+    struct report* report,
+    struct memoize* memoize,
+    const std::uint64_t* undefined);
+
+enum match_result match_sub_tri(std::size_t attr_domains_count,
     const struct betree_variable** preds,
     const struct betree_sub* sub,
     struct report* report,

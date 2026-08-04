@@ -60,6 +60,9 @@ inline bool is_event_enclosed_shared(
         case BETREE_SEGMENTS:
         case BETREE_FREQUENCY_CAPS:
             return true;
+        case BETREE_UNFETCHED:
+            // Value not yet known: can't rule the subtree out, so don't prune it.
+            return true;
         default:
             std::abort();
     }

@@ -17,6 +17,7 @@
 #include "memoize.h"
 #include "printer.h"
 #include "special.h"
+#include "tree.h"
 #include "utils.h"
 #include "value.h"
 #include "var.h"
@@ -1091,6 +1092,306 @@ bool match_node(const struct betree_variable** preds,
     struct report* report)
 {
     return match_node_inner(preds, node, memoize, report);
+}
+
+// --- Tri-state evaluation for the flat/continuation search path ---
+//
+// Reuses the existing match_*_expr helpers above for the actual matching
+// logic (they're already correct for the "value known" case); this layer
+// only adds the extra check for whether the variable(s) an expression
+// touches are BETREE_PRED_UNFETCHED before deferring to them, and threads
+// MATCH_UNKNOWN through AND/OR/NOT short-circuit the same way the plain
+// evaluator threads bool.
+
+static enum match_result match_node_tri_inner(const struct betree_variable** preds,
+    const struct ast_node* node,
+    struct memoize* memoize,
+    struct report* report);
+
+static inline enum match_result to_result(bool v)
+{
+    return v ? MATCH_TRUE : MATCH_FALSE;
+}
+
+static inline enum match_result check_pred(const struct betree_variable** preds, betree_var_t var)
+{
+    if(preds[var] == &BETREE_PRED_UNFETCHED) {
+        return MATCH_UNKNOWN;
+    }
+    if(preds[var] == nullptr) {
+        return MATCH_FALSE;
+    }
+    return MATCH_TRUE;
+}
+
+static enum match_result match_bool_expr_tri(const struct betree_variable** preds,
+    const struct ast_bool_expr bool_expr,
+    struct memoize* memoize,
+    struct report* report)
+{
+    switch(bool_expr.op) {
+        case AST_BOOL_LITERAL:
+            return to_result(bool_expr.literal);
+        case AST_BOOL_AND: {
+            enum match_result lhs = match_node_tri_inner(preds, bool_expr.binary.lhs, memoize, report);
+            if(lhs == MATCH_FALSE) {
+                return MATCH_FALSE;
+            }
+            enum match_result rhs = match_node_tri_inner(preds, bool_expr.binary.rhs, memoize, report);
+            if(lhs == MATCH_TRUE) {
+                return rhs;
+            }
+            return rhs == MATCH_FALSE ? MATCH_FALSE : MATCH_UNKNOWN;
+        }
+        case AST_BOOL_OR: {
+            enum match_result lhs = match_node_tri_inner(preds, bool_expr.binary.lhs, memoize, report);
+            if(lhs == MATCH_TRUE) {
+                return MATCH_TRUE;
+            }
+            enum match_result rhs = match_node_tri_inner(preds, bool_expr.binary.rhs, memoize, report);
+            if(lhs == MATCH_FALSE) {
+                return rhs;
+            }
+            return rhs == MATCH_TRUE ? MATCH_TRUE : MATCH_UNKNOWN;
+        }
+        case AST_BOOL_NOT: {
+            enum match_result result = match_node_tri_inner(preds, bool_expr.unary.expr, memoize, report);
+            if(result == MATCH_UNKNOWN) {
+                return MATCH_UNKNOWN;
+            }
+            return result == MATCH_TRUE ? MATCH_FALSE : MATCH_TRUE;
+        }
+        case AST_BOOL_VARIABLE: {
+            betree_var_t var = bool_expr.variable.var;
+            if(report != nullptr && report->cb) {
+                report->last_var = var;
+            }
+            enum match_result cp = check_pred(preds, var);
+            if(cp != MATCH_TRUE) {
+                return cp;
+            }
+            bool value;
+            get_bool_var(var, preds, &value);
+            return to_result(value);
+        }
+        default: std::abort();
+    }
+}
+
+static enum match_result match_compare_expr_tri(
+    const struct betree_variable** preds, const struct ast_compare_expr compare_expr)
+{
+    enum match_result cp = check_pred(preds, compare_expr.attr_var.var);
+    if(cp != MATCH_TRUE) {
+        return cp;
+    }
+    return to_result(match_compare_expr(preds, compare_expr));
+}
+
+static enum match_result match_equality_expr_tri(
+    const struct betree_variable** preds, const struct ast_equality_expr equality_expr)
+{
+    enum match_result cp = check_pred(preds, equality_expr.attr_var.var);
+    if(cp != MATCH_TRUE) {
+        return cp;
+    }
+    return to_result(match_equality_expr(preds, equality_expr));
+}
+
+static enum match_result match_list_expr_tri(
+    const struct betree_variable** preds, const struct ast_list_expr list_expr)
+{
+    enum match_result cp = check_pred(preds, list_expr.attr_var.var);
+    if(cp != MATCH_TRUE) {
+        return cp;
+    }
+    return to_result(match_list_expr(preds, list_expr));
+}
+
+static enum match_result match_set_expr_tri(
+    const struct betree_variable** preds, const struct ast_set_expr set_expr, struct report* report)
+{
+    struct set_left_value left = set_expr.left_value;
+    struct set_right_value right = set_expr.right_value;
+    betree_var_t var;
+    if(left.value_type == AST_SET_LEFT_VALUE_INTEGER
+        && right.value_type == AST_SET_RIGHT_VALUE_VARIABLE) {
+        var = right.variable_value.var;
+    }
+    else if(left.value_type == AST_SET_LEFT_VALUE_STRING
+        && right.value_type == AST_SET_RIGHT_VALUE_VARIABLE) {
+        var = right.variable_value.var;
+    }
+    else if(left.value_type == AST_SET_LEFT_VALUE_VARIABLE
+        && right.value_type == AST_SET_RIGHT_VALUE_INTEGER_LIST) {
+        var = left.variable_value.var;
+    }
+    else if(left.value_type == AST_SET_LEFT_VALUE_VARIABLE
+        && right.value_type == AST_SET_RIGHT_VALUE_STRING_LIST) {
+        var = left.variable_value.var;
+    }
+    else {
+        return MATCH_FALSE;
+    }
+    enum match_result cp = check_pred(preds, var);
+    if(cp != MATCH_TRUE) {
+        return cp;
+    }
+    return to_result(match_set_expr(preds, set_expr, report));
+}
+
+static enum match_result match_special_expr_tri(
+    const struct betree_variable** preds, const struct ast_special_expr special_expr)
+{
+    switch(special_expr.type) {
+        case AST_SPECIAL_FREQUENCY: {
+            enum match_result cp = check_pred(preds, special_expr.frequency.attr_var.var);
+            if(cp != MATCH_TRUE) {
+                return cp;
+            }
+            cp = check_pred(preds, special_expr.frequency.now.var);
+            if(cp != MATCH_TRUE) {
+                return cp;
+            }
+            break;
+        }
+        case AST_SPECIAL_SEGMENT: {
+            enum match_result cp = check_pred(preds, special_expr.segment.attr_var.var);
+            if(cp != MATCH_TRUE) {
+                return cp;
+            }
+            cp = check_pred(preds, special_expr.segment.now.var);
+            if(cp != MATCH_TRUE) {
+                return cp;
+            }
+            break;
+        }
+        case AST_SPECIAL_GEO: {
+            enum match_result cp = check_pred(preds, special_expr.geo.latitude_var.var);
+            if(cp != MATCH_TRUE) {
+                return cp;
+            }
+            cp = check_pred(preds, special_expr.geo.longitude_var.var);
+            if(cp != MATCH_TRUE) {
+                return cp;
+            }
+            break;
+        }
+        case AST_SPECIAL_STRING: {
+            enum match_result cp = check_pred(preds, special_expr.string.attr_var.var);
+            if(cp != MATCH_TRUE) {
+                return cp;
+            }
+            break;
+        }
+        default: std::abort();
+    }
+    return to_result(match_special_expr(preds, special_expr));
+}
+
+static enum match_result match_is_null_expr_tri(
+    const struct betree_variable** preds, const struct ast_is_null_expr is_null_expr)
+{
+    if(preds[is_null_expr.attr_var.var] == &BETREE_PRED_UNFETCHED) {
+        return MATCH_UNKNOWN;
+    }
+    return to_result(match_is_null_expr(preds, is_null_expr));
+}
+
+static enum match_result match_node_tri_inner(const struct betree_variable** preds,
+    const struct ast_node* node,
+    struct memoize* memoize,
+    struct report* report)
+{
+    if(node->memoize_id != INVALID_PRED) {
+        if(test_bit(memoize->pass, node->memoize_id)) {
+            if(report != nullptr) {
+                report->memoized++;
+                if(report->cb != nullptr && report->memoize_vars != nullptr) {
+                    report->last_var = report->memoize_vars[node->memoize_id];
+                }
+            }
+            return MATCH_TRUE;
+        }
+        if(test_bit(memoize->fail, node->memoize_id)) {
+            if(report != nullptr) {
+                report->memoized++;
+                if(report->cb != nullptr && report->memoize_vars != nullptr) {
+                    report->last_var = report->memoize_vars[node->memoize_id];
+                }
+            }
+            return MATCH_FALSE;
+        }
+    }
+    enum match_result result;
+    switch(node->type) {
+        case AST_TYPE_IS_NULL_EXPR:
+            result = match_is_null_expr_tri(preds, node->is_null_expr);
+            if(report != nullptr && report->cb) {
+                report->last_var = node->is_null_expr.attr_var.var;
+            }
+            break;
+        case AST_TYPE_SPECIAL_EXPR: {
+            result = match_special_expr_tri(preds, node->special_expr);
+            if(report != nullptr && report->cb) {
+                report->last_var = special_expr_var(&node->special_expr);
+            }
+            break;
+        }
+        case AST_TYPE_BOOL_EXPR: {
+            result = match_bool_expr_tri(preds, node->bool_expr, memoize, report);
+            break;
+        }
+        case AST_TYPE_LIST_EXPR: {
+            result = match_list_expr_tri(preds, node->list_expr);
+            if(report != nullptr && report->cb) {
+                report->last_var = node->list_expr.attr_var.var;
+            }
+            break;
+        }
+        case AST_TYPE_SET_EXPR: {
+            result = match_set_expr_tri(preds, node->set_expr, report);
+            break;
+        }
+        case AST_TYPE_COMPARE_EXPR: {
+            result = match_compare_expr_tri(preds, node->compare_expr);
+            if(report != nullptr && report->cb) {
+                report->last_var = node->compare_expr.attr_var.var;
+            }
+            break;
+        }
+        case AST_TYPE_EQUALITY_EXPR: {
+            result = match_equality_expr_tri(preds, node->equality_expr);
+            if(report != nullptr && report->cb) {
+                report->last_var = node->equality_expr.attr_var.var;
+            }
+            break;
+        }
+        default: std::abort();
+    }
+    // Memoization only caches settled (true/false) results: an unknown
+    // result may become settled once more variables are fetched, and
+    // caching it would incorrectly freeze that outcome across yields.
+    if(node->memoize_id != INVALID_PRED && result != MATCH_UNKNOWN) {
+        if(report != nullptr && report->cb != nullptr && report->memoize_vars != nullptr) {
+            report->memoize_vars[node->memoize_id] = report->last_var;
+        }
+        if(result == MATCH_TRUE) {
+            set_bit(memoize->pass, node->memoize_id);
+        }
+        else {
+            set_bit(memoize->fail, node->memoize_id);
+        }
+    }
+    return result;
+}
+
+enum match_result match_node_tri(const struct betree_variable** preds,
+    const struct ast_node* node,
+    struct memoize* memoize,
+    struct report* report)
+{
+    return match_node_tri_inner(preds, node, memoize, report);
 }
 
 struct bound_dirty {

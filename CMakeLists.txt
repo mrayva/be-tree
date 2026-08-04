@@ -136,6 +136,7 @@ set(BETREE_UNIT_TESTS
     printer_tests
     report_tests
     special_tests
+    unfetched_tests
     valid_tests
 )
 

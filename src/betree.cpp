@@ -13,6 +13,7 @@
 #include "ast.h"
 #include "betree.h"
 #include "error.h"
+#include "flat.hpp"
 #include "hashmap.h"
 #include "tree.h"
 #include "utils.h"
@@ -561,7 +562,13 @@ const struct betree_variable** make_environment(size_t attr_domain_count, const 
 {
     auto preds = static_cast<const struct betree_variable**>(bcalloc(attr_domain_count * sizeof(struct betree_variable*)));
     for(size_t i = 0; i < event->variable_count; i++) {
-        if(event->variables[i] != nullptr) {
+        if(event->variables[i] == nullptr) {
+            continue;
+        }
+        if(event->variables[i]->value.value_type == BETREE_UNFETCHED) {
+            preds[event->variables[i]->attr_var.var] = &BETREE_PRED_UNFETCHED;
+        }
+        else {
             preds[event->variables[i]->attr_var.var] = event->variables[i];
         }
     }
@@ -699,7 +706,15 @@ struct report* make_report(void)
 void free_report(struct report* report)
 {
     bfree(report->subs);
-    bfree(report->memoize_vars);
+    if(report->state != nullptr) {
+        // report->memoize_vars is just a pointer alias into
+        // report->state->memoize_vars while a flat search is suspended
+        // mid-yield; freeing the state below already covers it.
+        flat_search_state_free(report->state);
+    }
+    else {
+        bfree(report->memoize_vars);
+    }
     bfree(report);
 }
 
@@ -733,6 +748,8 @@ static void betree_init_with_config(struct betree* betree, struct config* config
     betree->config = config;
     betree->cnode = make_cnode(betree->config, nullptr);
     betree->subs_data = nullptr;
+    betree->flat.buf = nullptr;
+    betree->flat.len = 0;
 }
 
 extern "C" {
@@ -772,6 +789,7 @@ struct betree* betree_make_with_parameters(uint64_t lnode_max_cap, uint64_t min_
 
 void betree_deinit(struct betree* betree)
 {
+    betree_free_flat(&betree->flat);
     free_cnode(betree->cnode);
     free_config(betree->config);
 }
@@ -1075,6 +1093,13 @@ struct betree_variable* betree_make_frequency_caps_variable(
     struct value v = {};
     v.value_type = BETREE_FREQUENCY_CAPS;
     v.frequency_caps_value = value;
+    return betree_make_variable(name, v);
+}
+
+struct betree_variable* betree_make_unfetched_variable(const char* name)
+{
+    struct value v = {};
+    v.value_type = BETREE_UNFETCHED;
     return betree_make_variable(name, v);
 }
 

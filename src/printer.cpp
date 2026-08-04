@@ -200,6 +200,7 @@ static const char* value_type_to_string(enum betree_value_type_e e)
         case BETREE_SEGMENTS: return "segments";
         case BETREE_FREQUENCY_CAPS: return "frequency_caps";
         case BETREE_INTEGER_ENUM: return "integer_enum";
+        case BETREE_UNFETCHED: return "unfetched";
         default: return "INVALID";
     }
 }
@@ -412,6 +413,9 @@ void print_variable(const struct betree_variable* v)
         case BETREE_FREQUENCY_CAPS:
             inner = frequency_caps_value_to_string(v->value.frequency_caps_value);
             printf("%s", inner);
+            break;
+        case BETREE_UNFETCHED:
+            printf("<unfetched>");
             break;
         default:
             printf("INVALID");
@@ -627,6 +631,7 @@ void print_value_type(enum betree_value_type_e value_type)
         case BETREE_SEGMENTS: printf("BETREE_SEGMENTS\n"); break;
         case BETREE_FREQUENCY_CAPS: printf("BETREE_FREQUENCY_CAPS\n"); break;
         case BETREE_INTEGER_ENUM: printf("BETREE_INTEGER_ENUM\n"); break;
+        case BETREE_UNFETCHED: printf("BETREE_UNFETCHED\n"); break;
         default: std::abort();
     }
 }

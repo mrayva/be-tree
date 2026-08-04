@@ -335,6 +335,9 @@ void free_value(struct value value)
             free_frequency_caps(value.frequency_caps_value);
             break;
         }
+        case BETREE_UNFETCHED: {
+            break;
+        }
         default:
             std::abort();
     }

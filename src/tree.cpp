@@ -29,6 +29,8 @@ extern "C" {
     int event_parse(const char* text, struct betree_event** event);
 }
 
+const struct betree_variable BETREE_PRED_UNFETCHED = {};
+
 static void search_cdir_ids(const struct attr_domain** attr_domains,
     const struct betree_variable** preds,
     struct cdir* cdir,
@@ -105,6 +107,29 @@ bool match_sub_(std::size_t attr_domains_count,
     }
     bool result = match_node(preds, sub->expr, memoize, report);
     return result;
+}
+
+enum match_result match_sub_tri(std::size_t attr_domains_count,
+    const struct betree_variable** preds,
+    const struct betree_sub* sub,
+    struct report* report,
+    struct memoize* memoize,
+    const std::uint64_t* undefined)
+{
+    auto short_circuit =
+        try_short_circuit_(attr_domains_count, &sub->short_circuit, undefined, &report->last_var);
+    if(short_circuit != SHORT_CIRCUIT_NONE) {
+        if(report != nullptr) {
+            report->shorted++;
+        }
+        if(short_circuit == SHORT_CIRCUIT_PASS) {
+            return MATCH_TRUE;
+        }
+        if(short_circuit == SHORT_CIRCUIT_FAIL) {
+            return MATCH_FALSE;
+        }
+    }
+    return match_node_tri(preds, sub->expr, memoize, report);
 }
 
 bool match_sub_counting(std::size_t attr_domains_count,
@@ -1771,6 +1796,12 @@ bool event_to_string(
                     "%s = (%s)", attr, string_list == nullptr ? "" : string_list);
                 bfree(string_list);
                 if(!appended) {
+                    return false;
+                }
+                break;
+            }
+            case(BETREE_UNFETCHED): {
+                if(!append_event_text(buffer, capacity, &length, "%s = <unfetched>", attr)) {
                     return false;
                 }
                 break;

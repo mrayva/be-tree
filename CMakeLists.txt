@@ -137,6 +137,7 @@ set(BETREE_UNIT_TESTS
     report_tests
     special_tests
     unfetched_tests
+    unfetched_err_tests
     valid_tests
 )
 

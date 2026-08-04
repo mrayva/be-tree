@@ -1050,6 +1050,32 @@ bool match_sub_err(std::size_t attr_domains_count,
     return result;
 }
 
+enum match_result match_sub_tri_err(std::size_t attr_domains_count,
+    const struct betree_variable** preds,
+    const struct betree_sub* sub,
+    struct report_err* report,
+    struct memoize* memoize,
+    const std::uint64_t* undefined,
+    betree_var_t* last_reason,
+    betree_var_t* memoize_reason)
+{
+    enum short_circuit_e short_circuit
+        = try_short_circuit_err(attr_domains_count, &sub->short_circuit, undefined, last_reason);
+    if(short_circuit != SHORT_CIRCUIT_NONE) {
+        if(report != nullptr) {
+            report->shorted++;
+        }
+        if(short_circuit == SHORT_CIRCUIT_PASS) {
+            return MATCH_TRUE;
+        }
+        if(short_circuit == SHORT_CIRCUIT_FAIL) {
+            return MATCH_FALSE;
+        }
+    }
+    return match_node_tri_err(
+        preds, sub->expr, memoize, report, last_reason, memoize_reason, attr_domains_count);
+}
+
 void match_be_tree_err(const struct config* config,
     const struct betree_variable** preds,
     const struct cnode_err* cnode,

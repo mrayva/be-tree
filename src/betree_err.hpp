@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "betree.h"
 #include "value.h"  // For betree_sub_t
 
 struct betree_err;
@@ -85,6 +86,11 @@ void free_report_err(struct report_err* report);
 
 void betree_deinit_err(struct betree_err* betree);
 void betree_free_err(struct betree_err* betree);
+
+void betree_flatten_err(struct betree_err* tree);
+void betree_free_flat_err(struct flat_tree* ft);
+enum flat_search_result betree_search_flat_err(
+    struct betree_err* tree, struct betree_event* event, struct report_err* report);
 
 struct betree_reason_t* betree_reason_create(const char* reason_name);
 void betree_reason_destroy(struct betree_reason_t* reason);

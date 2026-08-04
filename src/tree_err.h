@@ -81,6 +81,15 @@ bool match_sub_err(size_t attr_domains_count,
     betree_var_t* last_reason,
     betree_var_t* memoize_reason);
 
+enum match_result match_sub_tri_err(size_t attr_domains_count,
+    const struct betree_variable** preds,
+    const struct betree_sub* sub,
+    struct report_err* report,
+    struct memoize* memoize,
+    const uint64_t* undefined,
+    betree_var_t* last_reason,
+    betree_var_t* memoize_reason);
+
 void add_sub_err(betree_sub_t id, struct report_err* report);
 
 bool sub_is_enclosed_err(const struct attr_domain** attr_domains,

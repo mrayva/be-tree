@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 
+#include "ast.h"
 #include "betree.h"
 #include "betree_err.h"
 #include "config.h"
@@ -15,6 +16,17 @@
 #endif
 
 bool match_node_err(const struct betree_variable** preds,
+    const struct ast_node* node,
+    struct memoize* memoize,
+    struct report_err* report,
+    betree_var_t* last_reason,
+    betree_var_t* memoize_reason,
+    size_t attr_domains_count);
+
+// Tri-state mirror of match_node_err for the flat/continuation search path:
+// same last_reason/memoize_reason threading, but returns MATCH_UNKNOWN
+// instead of stopping at a BETREE_PRED_UNFETCHED variable.
+enum match_result match_node_tri_err(const struct betree_variable** preds,
     const struct ast_node* node,
     struct memoize* memoize,
     struct report_err* report,

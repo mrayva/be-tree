@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "ast.h"
 #include "betree.h"
 #include "betree_err.h"
 #include "config.h"
@@ -66,6 +67,15 @@ void match_be_tree_node_counting_err(const struct config* config,
     struct subs_to_eval* subs,
     int* node_count);
 bool match_sub_err(std::size_t attr_domains_count,
+    const struct betree_variable** preds,
+    const struct betree_sub* sub,
+    struct report_err* report,
+    struct memoize* memoize,
+    const std::uint64_t* undefined,
+    betree_var_t* last_reason,
+    betree_var_t* memoize_reason);
+
+enum match_result match_sub_tri_err(std::size_t attr_domains_count,
     const struct betree_variable** preds,
     const struct betree_sub* sub,
     struct report_err* report,

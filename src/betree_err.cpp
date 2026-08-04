@@ -13,6 +13,7 @@
 #include "ast.h"
 #include "betree.h"
 #include "error.h"
+#include "flat_err.hpp"
 #include "hashmap.h"
 #include "tree.h"
 #include "tree_err.h"
@@ -507,6 +508,8 @@ static void betree_init_with_config_err(struct betree_err* betree, struct config
     betree->cnode = make_cnode_err(betree->config, nullptr);
     auto new_list = create_dynamic_array(INITIAL_CAPACITY);
     if(new_list) betree->sub_ids = new_list;
+    betree->flat.buf = nullptr;
+    betree->flat.len = 0;
 }
 
 static struct betree_err* betree_make_with_config_err(struct config* config)
@@ -739,6 +742,9 @@ void free_report_err(struct report_err* report)
     betree_reason_map_destroy(report->reason_sub_id_list);
 #endif
     bfree(report->subs);
+    if(report->state != nullptr) {
+        flat_search_state_free_err(report->state);
+    }
     bfree(report);
 }
 
@@ -763,6 +769,7 @@ struct betree_err* betree_make_with_parameters_err(
 
 void betree_deinit_err(struct betree_err* betree)
 {
+    betree_free_flat_err(&betree->flat);
     free_cnode_err(betree->cnode);
     free_config(betree->config);
     destroy_dynamic_array(betree->sub_ids);

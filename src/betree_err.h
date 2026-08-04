@@ -1,5 +1,6 @@
 #pragma once
 
+#include "betree.h"
 #include "dyn_arr.h"
 #include "value.h"
 #include <stdbool.h>
@@ -14,11 +15,13 @@ typedef uint64_t betree_sub_t;
 #endif
 
 struct cnode_err;
+struct flat_search_state_err;
 
 struct betree_err {
     struct config* config;
     struct cnode_err* cnode;
     dynamic_array_t* sub_ids;
+    struct flat_tree flat;
 };
 
 struct betree_reason_t {
@@ -47,6 +50,9 @@ struct report_err {
     size_t shorted;
     betree_sub_t* subs;
     struct betree_reason_map_t* reason_sub_id_list;
+    // Saved state for a suspended betree_search_flat_err() call. NULL
+    // except between a FLAT_SEARCH_YIELD and the matching continuation call.
+    struct flat_search_state_err* state;
 };
 
 #ifndef __cplusplus
@@ -128,6 +134,14 @@ void free_report_err(struct report_err* report);
  */
 void betree_deinit_err(struct betree_err* betree);
 void betree_free_err(struct betree_err* betree);
+
+/*
+ * Flat tree / continuation search
+ */
+void betree_flatten_err(struct betree_err* tree);
+void betree_free_flat_err(struct flat_tree* ft);
+enum flat_search_result betree_search_flat_err(
+    struct betree_err* tree, struct betree_event* event, struct report_err* report);
 
 struct betree_reason_t* betree_reason_create(const char* reason_name);
 void betree_reason_destroy(struct betree_reason_t* reason);

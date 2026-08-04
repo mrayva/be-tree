@@ -449,6 +449,143 @@ int test_search_flat_cdir_prunes_out_of_bound_subtree()
     return 0;
 }
 
+// The next three tests target specific bugs upstream's own commit history
+// had to fix once for this feature, that the existing coverage above
+// doesn't specifically exercise -- each one fails if the corresponding fix
+// isn't ported correctly, not just "does the final answer come out right".
+
+int test_search_flat_unfetched_resolves_to_confirmed_absent()
+{
+    // Upstream: "Resolve unfetched-to-undefined in update_state_preds:
+    // when search_continue clears an unfetched event slot to NULL (value
+    // resolved as undefined), update_state_preds now detects this... This
+    // prevents the flat search from yielding again on already-resolved
+    // variables." Every other yield/resume test here resolves the
+    // unfetched variable to a real value; this one resolves it to
+    // "checked, and it's genuinely absent" instead, which exercises a
+    // different branch of update_state_preds entirely.
+    struct betree* tree = betree_make();
+    add_attr_domain_i(tree->config, "x", false);
+    add_attr_domain_i(tree->config, "y", false);
+    mu_assert(betree_insert(tree, 1, "y = 1"), "");
+    mu_assert(betree_insert(tree, 2, "x > 5"), "");
+
+    alloc_subs_data(tree, 4);
+    betree_flatten(tree);
+
+    struct betree_event* event = betree_make_event(tree);
+    betree_set_variable(event, 0, betree_make_unfetched_variable("x"));
+    betree_set_variable(event, 1, betree_make_integer_variable("y", 1));
+
+    struct report* report = make_report();
+    enum flat_search_result res = betree_search_flat(tree, event, report);
+
+    mu_assert(res == FLAT_SEARCH_YIELD, "");
+    mu_assert(report->matched == 1, "");
+    mu_assert(report->subs[0] == 1, "");
+
+    // Resolve x to confirmed-absent, not a value.
+    betree_set_variable(event, 0, NULL);
+    res = betree_search_flat(tree, event, report);
+
+    // If the sentinel weren't cleared correctly, this would yield again
+    // (on the same still-"unfetched" slot) instead of completing.
+    mu_assert(res == FLAT_SEARCH_DONE, "");
+    mu_assert(report->state == NULL, "");
+    // x undefined with allow_undefined=false means "x > 5" can never match.
+    mu_assert(report->matched == 1, "");
+    mu_assert(report->subs[0] == 1, "");
+
+    free_report(report);
+    betree_free_event(event);
+    free_subs_data(tree);
+    betree_free(tree);
+    return 0;
+}
+
+int test_search_flat_short_circuit_attributes_last_var()
+{
+    // Upstream: "match_sub_tri was calling try_short_circuit() which does
+    // not update report->last_var, causing stale variable attribution in
+    // stats callbacks. Switch to try_short_circuit_()." Mirrors
+    // memoize_tests.c-adjacent counting_tests.c's
+    // test_counting_short_circuit_fail setup (an allow_undefined variable
+    // the event never sets, so the sub short-circuit-fails on it without
+    // ever reaching match_node_tri) to confirm match_sub_tri attributes
+    // last_var the same way. make_report() initializes last_var to
+    // NIL_VAR, so this only passes if something actually wrote to it.
+    struct betree* tree = betree_make();
+    add_attr_domain_i(tree->config, "i", true);
+    mu_assert(betree_insert(tree, 1, "i = 1"), "");
+
+    alloc_subs_data(tree, 4);
+    betree_flatten(tree);
+
+    struct betree_event* event = betree_make_event(tree);
+
+    struct report* report = make_report();
+    enum flat_search_result res = betree_search_flat(tree, event, report);
+
+    mu_assert(res == FLAT_SEARCH_DONE, "");
+    mu_assert(report->matched == 0, "");
+    mu_assert(report->shorted == 1, "");
+    mu_assert(report->last_var == 0, "");
+
+    free_report(report);
+    betree_free_event(event);
+    free_subs_data(tree);
+    betree_free(tree);
+    return 0;
+}
+
+int test_search_flat_memoize_skips_unknown_then_reuses_after_resolve()
+{
+    // Mirrors memoize_tests.c's test_same: inserting the exact same
+    // expression twice gives the whole node a shared memoize_id
+    // (verified there via report->memoized == 1). Here "x > 5" is
+    // unknown the first time it's reached (x unfetched), which must NOT
+    // get cached -- if it were (as either pass or fail), resuming would
+    // return the stale cached answer instead of re-evaluating with the
+    // now-resolved x, and the second sub would inherit that same wrong
+    // answer via the "correctly working" memoize hit.
+    struct betree* tree = betree_make();
+    add_attr_domain_i(tree->config, "x", false);
+    mu_assert(betree_insert(tree, 1, "x > 5"), "");
+    mu_assert(betree_insert(tree, 2, "x > 5"), "");
+
+    alloc_subs_data(tree, 4);
+    betree_flatten(tree);
+
+    struct betree_event* event = betree_make_event(tree);
+    betree_set_variable(event, 0, betree_make_unfetched_variable("x"));
+
+    struct report* report = make_report();
+    enum flat_search_result res = betree_search_flat(tree, event, report);
+
+    mu_assert(res == FLAT_SEARCH_YIELD, "");
+    mu_assert(report->matched == 0, "");
+    // Nothing has been decided even once yet, so nothing could have been
+    // memoized regardless of whether the "don't cache unknown" rule works.
+    mu_assert(report->memoized == 0, "");
+
+    betree_set_variable(event, 0, betree_make_integer_variable("x", 10));
+    res = betree_search_flat(tree, event, report);
+
+    mu_assert(res == FLAT_SEARCH_DONE, "");
+    mu_assert(report->state == NULL, "");
+    mu_assert(report->matched == 2, "");
+    mu_assert(report->subs[0] == 1 && report->subs[1] == 2, "");
+    // The real proof: sub 2 reused sub 1's freshly-resolved (not
+    // incorrectly pre-cached) evaluation of the shared "x > 5" node.
+    mu_assert(report->memoized >= 1, "");
+
+    free_report(report);
+    betree_free_event(event);
+    free_subs_data(tree);
+    betree_free(tree);
+    return 0;
+}
+
 int all_tests()
 {
     mu_run_test(test_make_and_free_standalone);
@@ -465,6 +602,9 @@ int all_tests()
     mu_run_test(test_search_flat_abandoned_mid_yield_does_not_leak);
     mu_run_test(test_search_flat_pnode_yields_and_resumes_into_nested_subtree);
     mu_run_test(test_search_flat_cdir_prunes_out_of_bound_subtree);
+    mu_run_test(test_search_flat_unfetched_resolves_to_confirmed_absent);
+    mu_run_test(test_search_flat_short_circuit_attributes_last_var);
+    mu_run_test(test_search_flat_memoize_skips_unknown_then_reuses_after_resolve);
 
     return 0;
 }

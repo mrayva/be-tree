@@ -732,18 +732,35 @@ int test_search_with_event_conversion_invariants()
     add_attr_domain_sl(tree->config, "sl", false);
     add_attr_domain_segments(tree->config, "seg", false);
     add_attr_domain_frequency(tree->config, "frequency_caps", false);
+    add_attr_domain_i(tree->config, "now", false);
+
+    const struct betree_constant* constants[] = {
+        betree_make_integer_constant("flight_id", 10),
+    };
 
     mu_assert(betree_insert(tree, 1, "ie = 2"), "");
     mu_assert(betree_insert(tree, 2, "sl is empty"), "");
-    mu_assert(betree_insert(tree, 3, "seg is empty"), "");
-    mu_assert(betree_insert(tree, 4, "frequency_caps is empty"), "");
+    mu_assert(betree_insert(tree, 3, "segment_within(seg, 1, 20)"), "");
+    mu_assert(
+        betree_insert_with_constants(
+            tree, 4, 1, constants, "within_frequency_cap(\"flight\", \"ns\", 100, 0)"),
+        "");
+    betree_free_constant((struct betree_constant*)constants[0]);
 
     struct betree_event* event = betree_make_event(tree);
     betree_set_variable(event, 0, betree_make_integer_variable("ie", 2));
     betree_set_variable(event, 1, betree_make_integer_list_variable("sl", betree_make_integer_list(0)));
-    betree_set_variable(event, 2, betree_make_integer_list_variable("seg", betree_make_integer_list(0)));
+
+    struct betree_segments* seg = betree_make_segments(1);
+    betree_add_segment(seg, 0, betree_make_segment(1, 10000000));
+    betree_set_variable(event, 2, betree_make_segments_variable("seg", seg));
+
+    struct betree_frequency_caps* frequency_caps = betree_make_frequency_caps(1);
+    betree_add_frequency_cap(
+        frequency_caps, 0, betree_make_frequency_cap("flight", 10, "ns", false, 0, 0));
     betree_set_variable(
-        event, 3, betree_make_integer_list_variable("frequency_caps", betree_make_integer_list(0)));
+        event, 3, betree_make_frequency_caps_variable("frequency_caps", frequency_caps));
+    betree_set_variable(event, 4, betree_make_integer_variable("now", 0));
 
     struct report* report = make_report();
     mu_assert(betree_search_with_event(tree, event, report), "");
@@ -766,18 +783,35 @@ int test_search_with_event_reuse_after_normalization()
     add_attr_domain_sl(tree->config, "sl", false);
     add_attr_domain_segments(tree->config, "seg", false);
     add_attr_domain_frequency(tree->config, "frequency_caps", false);
+    add_attr_domain_i(tree->config, "now", false);
+
+    const struct betree_constant* constants[] = {
+        betree_make_integer_constant("flight_id", 10),
+    };
 
     mu_assert(betree_insert(tree, 1, "ie = 2"), "");
     mu_assert(betree_insert(tree, 2, "sl is empty"), "");
-    mu_assert(betree_insert(tree, 3, "seg is empty"), "");
-    mu_assert(betree_insert(tree, 4, "frequency_caps is empty"), "");
+    mu_assert(betree_insert(tree, 3, "segment_within(seg, 1, 20)"), "");
+    mu_assert(
+        betree_insert_with_constants(
+            tree, 4, 1, constants, "within_frequency_cap(\"flight\", \"ns\", 100, 0)"),
+        "");
+    betree_free_constant((struct betree_constant*)constants[0]);
 
     struct betree_event* event = betree_make_event(tree);
     betree_set_variable(event, 0, betree_make_integer_variable("ie", 2));
     betree_set_variable(event, 1, betree_make_integer_list_variable("sl", betree_make_integer_list(0)));
-    betree_set_variable(event, 2, betree_make_integer_list_variable("seg", betree_make_integer_list(0)));
+
+    struct betree_segments* seg = betree_make_segments(1);
+    betree_add_segment(seg, 0, betree_make_segment(1, 10000000));
+    betree_set_variable(event, 2, betree_make_segments_variable("seg", seg));
+
+    struct betree_frequency_caps* frequency_caps = betree_make_frequency_caps(1);
+    betree_add_frequency_cap(
+        frequency_caps, 0, betree_make_frequency_cap("flight", 10, "ns", false, 0, 0));
     betree_set_variable(
-        event, 3, betree_make_integer_list_variable("frequency_caps", betree_make_integer_list(0)));
+        event, 3, betree_make_frequency_caps_variable("frequency_caps", frequency_caps));
+    betree_set_variable(event, 4, betree_make_integer_variable("now", 0));
 
     const uint64_t expected[] = {1, 2, 3, 4};
     const uint64_t ids[] = {1, 3, 4};

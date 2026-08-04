@@ -190,6 +190,48 @@ void verify_wrapper_event_api_rejections() {
             "wrapper event API accepted an invalid frequency-cap type");
 }
 
+void verify_wrapper_event_list_setter_out_of_range() {
+    // Event::set_integer_list/set_string_list/set_empty_list/set_segments/
+    // set_frequency_caps used to build their C-heap list/segments/caps
+    // object *before* the variable_name(index) call that can throw on an
+    // out-of-range index, leaking that object. This only has one variable
+    // (index 0), so index 1 is guaranteed out of range for every setter.
+    be::Tree tree;
+    tree.add_integer_list("tags", false, 0, 100);
+    auto event = tree.make_event();
+
+    int caught = 0;
+
+    try {
+        event.set_integer_list(1, {1, 2, 3});
+    } catch (const be::BetreeException&) {
+        ++caught;
+    }
+    try {
+        event.set_string_list(1, {"a", "b"});
+    } catch (const be::BetreeException&) {
+        ++caught;
+    }
+    try {
+        event.set_empty_list(1);
+    } catch (const be::BetreeException&) {
+        ++caught;
+    }
+    try {
+        event.set_segments(1, {{1, 10000000}});
+    } catch (const be::BetreeException&) {
+        ++caught;
+    }
+    try {
+        event.set_frequency_caps(1, {{"flight", 10, "ns", false, 0, 0}});
+    } catch (const be::BetreeException&) {
+        ++caught;
+    }
+
+    require(caught == 5,
+            "wrapper event list setters did not all reject an out-of-range index");
+}
+
 void verify_wrapper_foreign_event_rejection() {
     be::Tree source;
     source.add_integer("age", false, 0, 120)
@@ -303,6 +345,7 @@ int main() {
     verify_wrapper_rejections();
     verify_wrapper_event_api();
     verify_wrapper_event_api_rejections();
+    verify_wrapper_event_list_setter_out_of_range();
     verify_wrapper_foreign_event_rejection();
     verify_wrapper_event_lifetime();
 

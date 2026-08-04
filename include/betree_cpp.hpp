@@ -163,11 +163,12 @@ public:
     }
 
     Event& set_integer_list(std::size_t index, const std::vector<std::int64_t>& values) {
+        const char* name = variable_name(index);
         betree_integer_list* list = betree_make_integer_list(values.size());
         for (std::size_t i = 0; i < values.size(); ++i) {
             betree_add_integer(list, i, values[i]);
         }
-        set_variable(index, betree_make_integer_list_variable(variable_name(index), list));
+        set_variable(index, betree_make_integer_list_variable(name, list));
         return *this;
     }
 
@@ -176,12 +177,13 @@ public:
     }
 
     Event& set_string_list(std::size_t index, const std::vector<std::string_view>& values) {
+        const char* name = variable_name(index);
         betree_string_list* list = betree_make_string_list(values.size());
         for (std::size_t i = 0; i < values.size(); ++i) {
             const auto value_str = detail::as_c_string(values[i]);
             betree_add_string(list, i, value_str.c_str());
         }
-        set_variable(index, betree_make_string_list_variable(variable_name(index), list));
+        set_variable(index, betree_make_string_list_variable(name, list));
         return *this;
     }
 
@@ -190,18 +192,19 @@ public:
     }
 
     Event& set_empty_list(std::size_t index) {
-        set_variable(index,
-            betree_make_integer_list_variable(variable_name(index), betree_make_integer_list(0)));
+        const char* name = variable_name(index);
+        set_variable(index, betree_make_integer_list_variable(name, betree_make_integer_list(0)));
         return *this;
     }
 
     Event& set_segments(std::size_t index, const std::vector<Segment>& values) {
+        const char* name = variable_name(index);
         betree_segments* segments = betree_make_segments(values.size());
         for (std::size_t i = 0; i < values.size(); ++i) {
             betree_add_segment(
                 segments, i, betree_make_segment(values[i].id, values[i].timestamp));
         }
-        set_variable(index, betree_make_segments_variable(variable_name(index), segments));
+        set_variable(index, betree_make_segments_variable(name, segments));
         return *this;
     }
 
@@ -210,6 +213,7 @@ public:
     }
 
     Event& set_frequency_caps(std::size_t index, const std::vector<FrequencyCap>& values) {
+        const char* name = variable_name(index);
         betree_frequency_caps* caps = betree_make_frequency_caps(values.size());
         for (std::size_t i = 0; i < values.size(); ++i) {
             const auto type_str = detail::as_c_string(values[i].type);
@@ -226,7 +230,7 @@ public:
             }
             betree_add_frequency_cap(caps, i, cap);
         }
-        set_variable(index, betree_make_frequency_caps_variable(variable_name(index), caps));
+        set_variable(index, betree_make_frequency_caps_variable(name, caps));
         return *this;
     }
 

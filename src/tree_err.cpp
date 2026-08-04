@@ -352,7 +352,7 @@ static double get_score(const struct attr_domain** attr_domains, betree_var_t va
     const struct attr_domain* attr_domain = get_attr_domain(attr_domains, var);
     double attr_domain_score = get_attr_domain_score(attr_domain);
     double score = static_cast<double>(count) * attr_domain_score;
-    return score;
+    return score + 10000 * attr_domain->rank;
 }
 
 static double get_pnode_score_err(const struct attr_domain** attr_domains, struct pnode_err* pnode)

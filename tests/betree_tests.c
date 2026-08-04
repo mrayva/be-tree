@@ -6,11 +6,13 @@
 
 #include "alloc.h"
 #include "betree.h"
+#include "betree_err.h"
 #include "debug.h"
 #include "helper.h"
 #include "minunit.h"
 #include "printer.h"
 #include "tree.h"
+#include "tree_err.h"
 #include "utils.h"
 
 int test_sub_has_attribute()
@@ -1778,6 +1780,49 @@ int test_cdir_not_or()
     return 0;
 }
 
+// Regression test for tree_err.cpp's get_score() silently dropping the
+// rank-priority term that tree.cpp's has. Mirrors test_insert_first_split's
+// setup (3 subs on "a" force a split when a 4th sub arrives), except "b"
+// carries a rank high enough that its +10000*rank score bonus should win
+// attribute selection despite having only one sub referencing it -- the
+// opposite outcome from test_insert_first_split's unranked case, where "a"
+// (count 3) beats "b" (count 1). Both trees, built from equivalent config,
+// must pick the same partitioning attribute.
+int test_rank_priority_selects_same_pnode_attr_as_plain_tree()
+{
+    struct betree* tree = betree_make();
+    add_attr_domain_bounded_i(tree->config, "a", false, 0, 10);
+    add_attr_domain_bounded_ranked_i(tree->config, "b", false, 0, 10, 5);
+
+    mu_assert(betree_insert(tree, 0, "a = 0"), "");
+    mu_assert(betree_insert(tree, 1, "a = 1"), "");
+    mu_assert(betree_insert(tree, 2, "a = 2"), "");
+    mu_assert(betree_insert(tree, 3, "b = 0"), "");
+
+    mu_assert(tree->cnode->pdir != NULL && tree->cnode->pdir->pnode_count == 1, "");
+    mu_assert(pnode_has_attr(tree->config, "b", tree->cnode->pdir->pnodes[0]),
+        "plain tree did not prioritize the ranked attribute");
+
+    struct betree_err* tree_err = betree_make_err();
+    add_attr_domain_bounded_i(tree_err->config, "a", false, 0, 10);
+    add_attr_domain_bounded_ranked_i(tree_err->config, "b", false, 0, 10, 5);
+
+    mu_assert(betree_insert_err(tree_err, 0, "a = 0"), "");
+    mu_assert(betree_insert_err(tree_err, 1, "a = 1"), "");
+    mu_assert(betree_insert_err(tree_err, 2, "a = 2"), "");
+    mu_assert(betree_insert_err(tree_err, 3, "b = 0"), "");
+
+    mu_assert(tree_err->cnode->pdir != NULL && tree_err->cnode->pdir->pnode_count == 1, "");
+    mu_assert(
+        tree_err->cnode->pdir->pnodes[0]->attr_var.var == tree->cnode->pdir->pnodes[0]->attr_var.var,
+        "_err tree picked a different partitioning attribute than the plain tree "
+        "for the same ranked config");
+
+    betree_free(tree);
+    betree_free_err(tree_err);
+    return 0;
+}
+
 int all_tests()
 {
     mu_run_test(test_int_enum);
@@ -1826,6 +1871,7 @@ int all_tests()
     mu_run_test(test_duplicate_unsorted_string_list);
     mu_run_test(test_cdir_not_and);
     mu_run_test(test_cdir_not_or);
+    mu_run_test(test_rank_priority_selects_same_pnode_attr_as_plain_tree);
 
     return 0;
 }

@@ -385,15 +385,15 @@ int test_insert_rejections()
 
 int all_tests()
 {
-    test_missing_domain();
-    test_comparison();
-    test_equality();
-    test_boolean();
-    test_set();
-    test_list();
-    test_null();
-    test_special();
-    test_insert_rejections();
+    mu_run_test(test_missing_domain);
+    mu_run_test(test_comparison);
+    mu_run_test(test_equality);
+    mu_run_test(test_boolean);
+    mu_run_test(test_set);
+    mu_run_test(test_list);
+    mu_run_test(test_null);
+    mu_run_test(test_special);
+    mu_run_test(test_insert_rejections);
     return 0;
 }
 

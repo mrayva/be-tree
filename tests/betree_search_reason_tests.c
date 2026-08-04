@@ -328,6 +328,7 @@ int test_frequency_cap_fail()
     betree_bulk_insert_with_constants(tree, exprs, exprs_count, constants, constant_count);
 
     betree_make_sub_ids(tree);
+    betree_free_constant((struct betree_constant*)constants[0]);
     const char* event
         = "{\"now\": 30, \"frequency_caps\": [[\"campaign\", 30, \"namespace\", 20, 10]]}";
     struct report_err* report = make_report_err(tree);
@@ -689,6 +690,7 @@ int test_all_search_term()
     betree_bulk_insert_with_constants(tree, exprs, exprs_count, constants, constant_count);
 
     betree_make_sub_ids(tree);
+    betree_free_constants(constant_count, (struct betree_constant**)constants);
 
     const char* event = "{\"b\": true, \"i\": 10, \"f\": 3.14, \"s\": \"good\", \"il\": [1,2,3], "
                         "\"sl\": [\"bad\"], \"seg\": [[1, 20000001]], \"frequency_caps\": "

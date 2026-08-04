@@ -2619,7 +2619,7 @@ bool all_exprs_valid(const struct config* config, const struct ast_node* node)
             const struct attr_domain* attr_domain = config->attr_domains[node->is_null_expr.attr_var.var];
             enum betree_value_type_e var_type = attr_domain->bound.value_type;
             return (node->is_null_expr.type == AST_IS_NULL && attr_domain->allow_undefined)
-                || (node->is_null_expr.type == AST_IS_NOT_NULL && attr_domain->allow_undefined)
+                || node->is_null_expr.type == AST_IS_NOT_NULL
                 || (node->is_null_expr.type == AST_IS_EMPTY && is_list_type(var_type));
         }
         case AST_TYPE_COMPARE_EXPR: {

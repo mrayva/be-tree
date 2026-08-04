@@ -218,6 +218,125 @@ int test_search_flat_err_records_reason_on_cdir_exclusion()
     return 0;
 }
 
+// The next three tests mirror unfetched_tests.c's three upstream-motivated
+// edge cases. _err has its own independent implementations of
+// update_state_preds_err, match_sub_tri_err, and the memoize-skip-on-
+// unknown rule, so the same risk exists here independently of the plain
+// API being correct.
+
+int test_search_flat_err_unfetched_resolves_to_confirmed_absent()
+{
+    struct betree_err* tree = betree_make_err();
+    add_attr_domain_i(tree->config, "x", false);
+    add_attr_domain_i(tree->config, "y", false);
+    mu_assert(betree_insert_err(tree, 1, "y = 1"), "");
+    mu_assert(betree_insert_err(tree, 2, "x > 5"), "");
+    betree_make_sub_ids(tree);
+    betree_flatten_err(tree);
+
+    struct betree_event* event = betree_make_event_err(tree);
+    betree_set_variable(event, 0, betree_make_unfetched_variable("x"));
+    betree_set_variable(event, 1, betree_make_integer_variable("y", 1));
+
+    struct report_err* report = make_report_err(tree);
+    enum flat_search_result res = betree_search_flat_err(tree, event, report);
+
+    mu_assert(res == FLAT_SEARCH_YIELD, "");
+    mu_assert(report->matched == 1, "");
+    mu_assert(report->subs[0] == 1, "");
+
+    // Resolve x to confirmed-absent, not a value.
+    betree_set_variable(event, 0, NULL);
+    res = betree_search_flat_err(tree, event, report);
+
+    // If update_state_preds_err didn't clear the sentinel correctly, this
+    // would yield again instead of completing.
+    mu_assert(res == FLAT_SEARCH_DONE, "");
+    mu_assert(report->state == NULL, "");
+    mu_assert(report->matched == 1, "");
+    mu_assert(report->subs[0] == 1, "");
+
+    free_report_err(report);
+    betree_free_event(event);
+    betree_free_err(tree);
+    return 0;
+}
+
+int test_search_flat_err_short_circuit_attributes_reason()
+{
+    // Mirrors counting_tests.c's test_counting_short_circuit_fail setup:
+    // an allow_undefined variable the event never sets, so the sub
+    // short-circuit-fails on it without ever reaching match_node_tri_err.
+    // Confirms match_sub_tri_err's try_short_circuit_err call correctly
+    // sets last_reason (the _err analog of report->last_var), which
+    // flat_search_err then records into reason_sub_id_list.
+    struct betree_err* tree = betree_make_err();
+    add_attr_domain_i(tree->config, "i", true);
+    mu_assert(betree_insert_err(tree, 1, "i = 1"), "");
+    betree_make_sub_ids(tree);
+    betree_flatten_err(tree);
+
+    struct betree_event* event = betree_make_event_err(tree);
+
+    struct report_err* report = make_report_err(tree);
+    enum flat_search_result res = betree_search_flat_err(tree, event, report);
+
+    mu_assert(res == FLAT_SEARCH_DONE, "");
+    mu_assert(report->matched == 0, "");
+    mu_assert(report->shorted == 1, "");
+    dynamic_array_t* rlist = betree_reason_map_get(report->reason_sub_id_list, 0);
+    mu_assert(rlist != NULL, "");
+    mu_assert(rlist->size == 1 && (betree_var_t)rlist->data[0] == (betree_var_t)1, "");
+    mu_assert(strcmp(report->reason_sub_id_list->reasons[0]->name, "i") == 0, "");
+
+    free_report_err(report);
+    betree_free_event(event);
+    betree_free_err(tree);
+    return 0;
+}
+
+int test_search_flat_err_memoize_skips_unknown_then_reuses_after_resolve()
+{
+    // Mirrors memoize_tests.c's test_same: inserting the exact same
+    // expression twice gives the whole node a shared memoize_id. "x > 5"
+    // is unknown the first time it's reached (x unfetched), which must
+    // not get cached in memoize_reason -- otherwise resuming would return
+    // the stale cached answer instead of re-evaluating with the
+    // now-resolved x.
+    struct betree_err* tree = betree_make_err();
+    add_attr_domain_i(tree->config, "x", false);
+    mu_assert(betree_insert_err(tree, 1, "x > 5"), "");
+    mu_assert(betree_insert_err(tree, 2, "x > 5"), "");
+    betree_make_sub_ids(tree);
+    betree_flatten_err(tree);
+
+    struct betree_event* event = betree_make_event_err(tree);
+    betree_set_variable(event, 0, betree_make_unfetched_variable("x"));
+
+    struct report_err* report = make_report_err(tree);
+    enum flat_search_result res = betree_search_flat_err(tree, event, report);
+
+    mu_assert(res == FLAT_SEARCH_YIELD, "");
+    mu_assert(report->matched == 0, "");
+    mu_assert(report->memoized == 0, "");
+
+    betree_set_variable(event, 0, betree_make_integer_variable("x", 10));
+    res = betree_search_flat_err(tree, event, report);
+
+    mu_assert(res == FLAT_SEARCH_DONE, "");
+    mu_assert(report->state == NULL, "");
+    mu_assert(report->matched == 2, "");
+    mu_assert(report->subs[0] == 1 && report->subs[1] == 2, "");
+    // The real proof: sub 2 reused sub 1's freshly-resolved (not
+    // incorrectly pre-cached) evaluation of the shared "x > 5" node.
+    mu_assert(report->memoized >= 1, "");
+
+    free_report_err(report);
+    betree_free_event(event);
+    betree_free_err(tree);
+    return 0;
+}
+
 int all_tests()
 {
     mu_run_test(test_flatten_err_lifecycle);
@@ -226,6 +345,9 @@ int all_tests()
     mu_run_test(test_search_flat_err_abandoned_mid_yield_does_not_leak);
     mu_run_test(test_search_flat_err_records_reason_on_mismatch);
     mu_run_test(test_search_flat_err_records_reason_on_cdir_exclusion);
+    mu_run_test(test_search_flat_err_unfetched_resolves_to_confirmed_absent);
+    mu_run_test(test_search_flat_err_short_circuit_attributes_reason);
+    mu_run_test(test_search_flat_err_memoize_skips_unknown_then_reuses_after_resolve);
 
     return 0;
 }

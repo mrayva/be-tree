@@ -1597,7 +1597,7 @@ struct betree_sub* make_sub(struct config* config, betree_sub_t id, struct ast_n
     }
     sub->id = id;
     sub->data = (void *)id;
-    std::size_t count = config->attr_domain_count / 64 + 1;
+    std::size_t count = (config->attr_domain_count + 63) / 64;
     sub->attr_vars = static_cast<std::uint64_t*>(bcalloc(count * sizeof(std::uint64_t)));
     sub->expr = expr;
     fill_pred(sub, sub->expr);
@@ -1784,7 +1784,7 @@ bool event_to_string(
 
 struct memoize make_memoize(std::size_t pred_count)
 {
-    std::size_t count = pred_count / 64 + 1;
+    std::size_t count = (pred_count + 63) / 64;
     struct memoize memoize = {
         .pass = static_cast<std::uint64_t*>(bcalloc(count * sizeof(std::uint64_t))),
         .fail = static_cast<std::uint64_t*>(bcalloc(count * sizeof(std::uint64_t))),
@@ -1794,7 +1794,7 @@ struct memoize make_memoize(std::size_t pred_count)
 
 struct memoize make_memoize_with_count(std::size_t pred_count, std::size_t* count)
 {
-    *count = pred_count / 64 + 1;
+    *count = (pred_count + 63) / 64;
     struct memoize memoize = {
         .pass = static_cast<std::uint64_t*>(bcalloc(*count * sizeof(std::uint64_t))),
         .fail = static_cast<std::uint64_t*>(bcalloc(*count * sizeof(std::uint64_t))),
@@ -1810,7 +1810,7 @@ void free_memoize(struct memoize memoize)
 
 std::uint64_t* make_undefined(std::size_t attr_domain_count, const struct betree_variable** preds)
 {
-    std::size_t count = attr_domain_count / 64 + 1;
+    std::size_t count = (attr_domain_count + 63) / 64;
     auto undefined = static_cast<std::uint64_t*>(bcalloc(count * sizeof(std::uint64_t)));
     for(std::size_t i = 0; i < attr_domain_count; i++) {
         if(preds[i] == nullptr) {
@@ -1823,7 +1823,7 @@ std::uint64_t* make_undefined(std::size_t attr_domain_count, const struct betree
 std::uint64_t* make_undefined_with_count(
     std::size_t attr_domain_count, const struct betree_variable** preds, std::size_t* count)
 {
-    *count = attr_domain_count / 64 + 1;
+    *count = (attr_domain_count + 63) / 64;
     auto undefined = static_cast<std::uint64_t*>(bcalloc(*count * sizeof(std::uint64_t)));
     for(std::size_t i = 0; i < attr_domain_count; i++) {
         if(preds[i] == nullptr) {

@@ -56,7 +56,7 @@ static inline enum short_circuit_e try_short_circuit(
     const struct short_circuit* short_circuit,
     const std::uint64_t* undefined)
 {
-    std::size_t count = attr_domains_count / 64 + 1;
+    std::size_t count = (attr_domains_count + 63) / 64;
     for (std::size_t i = 0; i < count; i++) {
         if (short_circuit->pass[i] & undefined[i]) {
             return SHORT_CIRCUIT_PASS;
@@ -74,7 +74,7 @@ static inline enum short_circuit_e try_short_circuit_(
     const std::uint64_t* undefined,
     betree_var_t* last_var)
 {
-    std::size_t count = attr_domains_count / 64 + 1;
+    std::size_t count = (attr_domains_count + 63) / 64;
     for (std::size_t i = 0; i < count; i++) {
         std::uint64_t pass_mask = short_circuit->pass[i] & undefined[i];
         if (pass_mask) {
@@ -96,7 +96,7 @@ static inline enum short_circuit_e try_short_circuit_err(
     const std::uint64_t* undefined,
     betree_var_t* last_reason)
 {
-    std::size_t count = attr_domains_count / 64 + 1;
+    std::size_t count = (attr_domains_count + 63) / 64;
     for (std::size_t i = 0; i < count; i++) {
         if (short_circuit->pass[i] & undefined[i]) {
             return SHORT_CIRCUIT_PASS;

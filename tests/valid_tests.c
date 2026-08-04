@@ -360,7 +360,9 @@ int test_insert_rejections()
 
     mu_assert(!betree_insert(tree, 1, "missing = 1"), "");
     mu_assert(!betree_insert(tree, 2, "country = 1"), "");
-    mu_assert(!betree_insert(tree, 3, "age = 11"), "");
+    // Out-of-declared-bound equality literals are accepted, not rejected: they simply can
+    // never match an in-bound event. test_match_deeper relies on this same behavior.
+    mu_assert(betree_insert(tree, 3, "age = 11"), "");
 
     enum e { constant_count = 2 };
     const struct betree_constant* constants[constant_count] = {

@@ -504,6 +504,11 @@ bool betree_insert_with_constants(struct betree* tree,
     assign_ienum_id(tree->config, node, false);
     sort_lists(node);
     fix_float_with_no_fractions(tree->config, node);
+    if(!all_exprs_valid(tree->config, node)) {
+        std::fprintf(stderr, "Invalid expression found %lu\n", id);
+        free_ast_node(node);
+        return false;
+    }
     assign_pred_id(tree->config, node);
     struct betree_sub* sub = make_sub(tree->config, id, node);
     return insert_be_tree(tree->config, sub, tree->cnode, nullptr);

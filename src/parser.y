@@ -93,6 +93,17 @@
 %destructor { if($$ != NULL) free_integer_list($$); } <integer_list_value>
 %destructor { if($$ != NULL) free_string_list($$); } <string_list_value>
 
+// program (the %start symbol, below) deliberately has no %type/%destructor:
+// its one action copies the finished tree out to *root by side effect
+// instead of returning it through $$, so program's own stack slot must
+// never be auto-freed - doing so would double-free the exact tree *root
+// (and thus parse()'s *node, see above) still points to on a successful
+// parse. The cost is that on a parse that fails on trailing garbage
+// *after* a complete expr, program's copy of that already-finished tree
+// is silently dropped by bison's error unwind rather than freed - handled
+// instead by parse() always initializing *node up front, so it's an
+// orphaned-but-freeable pointer, never a leak.
+
 %left TCEQ TCNE TCGT TCGE TCLT TCLE
 %left TOR
 %left TAND 
@@ -247,7 +258,23 @@ s_string_expr       : TCONTAINS TLPAREN ident TCOMMA string TRPAREN
 int parse(const char *text, struct ast_node **node)
 {
     // xxdebug = 1;
-    
+
+    // program's only action (`program : expr { *root = $1; }`, above) is
+    // the sole place *node ever gets written - it runs as soon as a
+    // complete expr is reduced, *before* bison has seen whether anything
+    // else follows. So a trailing-garbage input like "flag !!!" still
+    // populates *node with a real, fully-built tree even though the
+    // overall parse then fails once bison chokes on "!!!" - xxparse's
+    // stack-unwind-on-error path doesn't know program's value duplicates
+    // *node's, so it silently drops it (program has no %type/%destructor
+    // of its own - see below) rather than freeing it. Callers rely on
+    // *node being NULL whenever there's nothing valid to free, so init it
+    // here rather than leaving it uninitialized: a parse that fails
+    // before ever completing a top-level expr (e.g. "country = ") never
+    // touches it, and a parse that fails on trailing garbage after a
+    // complete one leaves a real, orphaned tree for the caller to free.
+    *node = NULL;
+
     // Parse using Bison.
     yyscan_t scanner;
     xxlex_init(&scanner);

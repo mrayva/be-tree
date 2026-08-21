@@ -48,6 +48,21 @@ void verify_wrapper_rejections() {
             "wrapper insert accepted unknown variable");
     require(!tree.insert(101, "country = "),
             "wrapper insert accepted malformed expression");
+    // Regression cases for a real leak: trailing garbage *after* an
+    // otherwise-complete sub-expression still leaves parse()'s *node
+    // pointing at a fully-built (but now orphaned) tree when the overall
+    // parse then fails on the garbage - unlike "country = " above, which
+    // never completes any sub-expression at all. betree_insert_with_
+    // constants() previously only freed that tree on every *other* failure
+    // branch, not this one. Both cases return false either way (rejection
+    // was never in question); it's ASan's leak check (see .github/
+    // workflows/pr-checks.yml's "Check for leaks" step) that actually
+    // exercises the regression - these calls alone prove nothing on a
+    // build without a sanitizer.
+    require(!tree.insert(103, "this is not valid !!!"),
+            "wrapper insert accepted nonsense expression (bare-identifier trailing garbage)");
+    require(!tree.insert(104, "age >= 21 and"),
+            "wrapper insert accepted incomplete combinator (comparison-expr trailing garbage)");
     require(!tree.insert_with_constants(
                 102,
                 "within_frequency_cap(\"flight\", \"ns\", 100, 0)",

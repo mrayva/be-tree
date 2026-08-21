@@ -529,6 +529,12 @@ bool betree_change_boundaries_err(struct betree_err* tree, const char* expr)
 {
     struct ast_node* node;
     if(parse(expr, &node) != 0) {
+        // parse() guarantees node is either NULL or a real, now-orphaned
+        // tree (trailing garbage after an otherwise-complete expr) - see
+        // parser.y's own parse().
+        if(node != nullptr) {
+            free_ast_node(node);
+        }
         return false;
     }
     assign_variable_id(tree->config, node);
@@ -550,6 +556,10 @@ bool betree_insert_with_constants_err(struct betree_err* tree,
     struct ast_node* node;
     if(parse(expr, &node) != 0) {
         std::fprintf(stderr, "Can't parse %lu\n", id);
+        // See the comment in betree_change_boundaries_err above.
+        if(node != nullptr) {
+            free_ast_node(node);
+        }
         return false;
     }
     assign_variable_id(tree->config, node);
@@ -586,6 +596,10 @@ const struct betree_sub* betree_make_sub_err(struct betree_err* tree,
     struct ast_node* node;
     if(parse(expr, &node) != 0) {
         std::fprintf(stderr, "Can't parse %lu\n", id);
+        // See the comment in betree_change_boundaries_err above.
+        if(node != nullptr) {
+            free_ast_node(node);
+        }
         return nullptr;
     }
     assign_variable_id(tree->config, node);

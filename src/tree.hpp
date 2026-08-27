@@ -122,6 +122,11 @@ void init_subs_to_eval_ext(struct subs_to_eval* subs, std::size_t init);
 // Undefined variable tracking
 std::uint64_t* make_undefined(std::size_t attr_domain_count, const struct betree_variable** preds);
 std::uint64_t* make_undefined_with_count(std::size_t attr_domain_count, const struct betree_variable** preds, std::size_t* count);
+// Recomputes make_undefined()'s bitmap into an EXISTING buffer instead of
+// allocating a fresh one - `undefined` must already point to at least
+// (attr_domain_count+63)/64 uint64_t's that the caller owns and keeps
+// alive across many searches against the same tree.
+void betree_refresh_undefined(std::size_t attr_domain_count, const struct betree_variable** preds, std::uint64_t* undefined);
 
 // Memoization
 struct memoize make_memoize(std::size_t pred_count);
@@ -209,10 +214,16 @@ struct betree_sub* find_sub_id(betree_sub_t id, struct cnode* cnode);
 bool insert_be_tree(const struct config* config, const struct betree_sub* sub, struct cnode* cnode, struct cdir* cdir);
 
 // Search operations
+// `undefined` is now a required, caller-owned buffer (at least
+// (attr_domain_count+63)/64 uint64_t's, with its bits already computed -
+// e.g. via make_undefined() or betree_refresh_undefined()) - this function
+// no longer allocates or frees it itself; ownership/lifetime belongs
+// entirely to the caller, unlike `preds` (still freed internally, unchanged).
 bool betree_search_with_preds(const struct config* config,
     const struct betree_variable** preds,
     const struct cnode* cnode,
-    struct report* report);
+    struct report* report,
+    std::uint64_t* undefined);
 
 bool betree_search_with_preds_ids(const struct config* config,
     const struct betree_variable** preds,

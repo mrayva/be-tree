@@ -1504,6 +1504,62 @@ int test_update_variable_in_place()
     return 0;
 }
 
+int test_search_with_event_reusing()
+{
+    // betree_search_with_event_reusing()/betree_reset_report() exist so a
+    // caller doing many searches against the same tree back to back (e.g.
+    // one per row of a batch) can reuse both the `undefined` bitmap and the
+    // `report` struct instead of allocating fresh ones every call. Exercises
+    // several searches in a row, with variable values changing between them
+    // (including flipping a variable to/from undefined), proving the reused
+    // buffers are correctly recomputed each time rather than going stale -
+    // not just that the functions run without crashing.
+    struct betree* tree = betree_make();
+    betree_add_boolean_variable(tree, "b", false);
+    betree_add_integer_variable(tree, "i", true, 0, 100);
+
+    mu_assert(betree_insert(tree, 1, "b"), "");
+    mu_assert(betree_insert(tree, 2, "i > 50"), "");
+    mu_assert(betree_insert(tree, 3, "i is null"), "");
+
+    size_t undefined_count = (tree->config->attr_domain_count + 63) / 64;
+    uint64_t* undefined = (uint64_t*)calloc(undefined_count, sizeof(uint64_t));
+    struct report* report = make_report();
+
+    struct betree_event* event = betree_make_event(tree);
+    struct betree_variable* bvar = betree_make_boolean_variable("b", false);
+    struct betree_variable* ivar = betree_make_integer_variable("i", 10);
+    betree_set_variable(event, 0, bvar);
+    betree_set_variable(event, 1, ivar);
+
+    // Search 1: both defined, neither predicate satisfied.
+    mu_assert(betree_search_with_event_reusing(tree, event, report, undefined), "");
+    mu_assert(report->matched == 0, "nothing should match the initial low/false values");
+
+    // Search 2: reuse the same report/undefined buffers, update values in
+    // place, both predicates now satisfied.
+    betree_reset_report(report);
+    betree_update_boolean_variable(bvar, true);
+    betree_update_integer_variable(ivar, 75);
+    mu_assert(betree_search_with_event_reusing(tree, event, report, undefined), "");
+    mu_assert(report->matched == 2, "b and i>50 should both match");
+
+    // Search 3: detach `i` (make it undefined) - proves `undefined` is
+    // actually recomputed by betree_refresh_undefined(), not stale from
+    // search 1 or 2, since "i is null" only matches once i is detached.
+    betree_reset_report(report);
+    betree_set_variable(event, 1, NULL);
+    mu_assert(betree_search_with_event_reusing(tree, event, report, undefined), "");
+    mu_assert(report->matched == 2, "b and i-is-null should match, i>50 should not");
+
+    free(undefined);
+    free_report(report);
+    betree_free_event(event);
+    betree_free(tree);
+
+    return 0;
+}
+
 int test_is_null()
 {
     struct betree* tree = betree_make();
@@ -1929,6 +1985,7 @@ int all_tests()
     mu_run_test(test_inverted_binop);
     mu_run_test(test_float_no_point_in_expr);
     mu_run_test(test_update_variable_in_place);
+    mu_run_test(test_search_with_event_reusing);
     mu_run_test(test_is_null);
     mu_run_test(test_bug_geo);
     mu_run_test(test_event_out_of_bound);

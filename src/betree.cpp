@@ -603,7 +603,10 @@ static bool betree_search_with_event_filled(const struct betree* betree, struct 
         return false;
     }
     // print_betree(betree);
-    return betree_search_with_preds(betree->config, variables, betree->cnode, report);
+    std::uint64_t* undefined = make_undefined(betree->config->attr_domain_count, variables);
+    bool result = betree_search_with_preds(betree->config, variables, betree->cnode, report, undefined);
+    bfree(undefined);
+    return result;
 }
 
 extern "C" {
@@ -688,6 +691,37 @@ bool betree_search_with_event(const struct betree* betree, struct betree_event* 
     return betree_search_with_event_filled(betree, event, report);
 }
 
+// Like betree_search_with_event(), but `undefined_scratch` is a
+// caller-supplied, caller-owned buffer of at least
+// (this tree's attribute count + 63) / 64 uint64_t's (see
+// betree_refresh_undefined()'s own doc comment) that's recomputed in
+// place instead of allocated and freed fresh - the rest of this
+// function's own logic mirrors betree_search_with_event_filled()'s,
+// minus that one allocation. Does NOT reset `report` itself - see
+// betree_reset_report(), meant to be called by the caller once per row
+// before this, exactly as make_report() is today for the non-reusing
+// path.
+bool betree_search_with_event_reusing(const struct betree* betree,
+    struct betree_event* event,
+    struct report* report,
+    std::uint64_t* undefined_scratch)
+{
+    if(event == nullptr || (event->config != nullptr && event->config != betree->config)) {
+        return false;
+    }
+    fill_event(betree->config, event);
+    sort_event_lists(event);
+    const struct betree_variable** variables
+        = make_environment(betree->config->attr_domain_count, event);
+    if(validate_variables(betree->config, variables) == false) {
+        std::fprintf(stderr, "Failed to validate event\n");
+        bfree(variables);
+        return false;
+    }
+    betree_refresh_undefined(betree->config->attr_domain_count, variables, undefined_scratch);
+    return betree_search_with_preds(betree->config, variables, betree->cnode, report, undefined_scratch);
+}
+
 bool betree_search_with_event_ids(const struct betree* betree, struct betree_event* event, struct report* report, const uint64_t* ids, size_t sz)
 {
     if(event == nullptr || (event->config != nullptr && event->config != betree->config)) {
@@ -730,6 +764,40 @@ void free_report(struct report* report)
         bfree(report->memoize_vars);
     }
     bfree(report);
+}
+
+// Resets an existing report for another search() call, instead of
+// free_report()+make_report() being called fresh every time - a real,
+// measured cost for a caller doing many searches against the same tree
+// back to back (e.g. one per row of a batch; see betree_search_with_event_
+// reusing() below). Frees report->subs (the previous search's match list,
+// if any - append_report_sub_id() will bcalloc a fresh one on next use)
+// and zeroes every field a search populates, leaving report ready exactly
+// as if make_report() had just been called. Does NOT free `report` itself
+// - the caller keeps owning it.
+void betree_reset_report(struct report* report)
+{
+    bfree(report->subs);
+    report->subs = nullptr;
+    if(report->state != nullptr) {
+        // Mirrors free_report()'s own handling above - not expected on
+        // the regular (non-flat) search path this function targets, but
+        // handled rather than assumed impossible.
+        flat_search_state_free(report->state);
+        report->state = nullptr;
+    }
+    else {
+        bfree(report->memoize_vars);
+    }
+    report->memoize_vars = nullptr;
+    report->evaluated = 0;
+    report->matched = 0;
+    report->memoized = 0;
+    report->shorted = 0;
+    report->last_var = NIL_VAR;
+    // cb/arg intentionally left untouched - this codebase's own usage
+    // never sets them at all; a caller that does is responsible for them,
+    // exactly as make_report()'s own caller already is today.
 }
 
 struct report_counting* make_report_counting(void)

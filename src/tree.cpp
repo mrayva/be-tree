@@ -1864,6 +1864,26 @@ std::uint64_t* make_undefined_with_count(
     return undefined;
 }
 
+// Recomputes make_undefined()'s bitmap into an EXISTING buffer instead of
+// allocating a fresh one - `undefined` must already point to at least
+// (attr_domain_count+63)/64 uint64_t's (e.g. previously returned by
+// make_undefined() itself, or a prior call to this same function) that the
+// caller owns and keeps alive across many searches against the same tree,
+// avoiding a bcalloc()/bfree() pair on every one. Clears the whole buffer
+// first (not just the bits this call would set) since a reused buffer may
+// still carry set bits from a previous, structurally different event.
+void betree_refresh_undefined(
+    std::size_t attr_domain_count, const struct betree_variable** preds, std::uint64_t* undefined)
+{
+    std::size_t count = (attr_domain_count + 63) / 64;
+    std::memset(undefined, 0, count * sizeof(std::uint64_t));
+    for(std::size_t i = 0; i < attr_domain_count; i++) {
+        if(preds[i] == nullptr) {
+            set_bit(undefined, i);
+        }
+    }
+}
+
 void add_sub(betree_sub_t id, struct report* report)
 {
     append_report_sub_id(id, report);
@@ -1877,11 +1897,11 @@ void add_sub_counting(betree_sub_t id, struct report_counting* report)
 bool betree_search_with_preds(const struct config* config,
     const struct betree_variable** preds,
     const struct cnode* cnode,
-    struct report* report)
+    struct report* report,
+    std::uint64_t* undefined)
 {
     std::size_t dom_cnt = config->attr_domain_count;
     std::size_t pred_count = config->pred_map->memoize_count;
-    std::uint64_t* undefined = make_undefined(dom_cnt, preds);
     struct memoize memoize = make_memoize(pred_count);
     struct subs_to_eval subs;
     init_subs_to_eval(&subs);
@@ -1923,7 +1943,6 @@ bool betree_search_with_preds(const struct config* config,
     free_memoize(memoize);
     bfree(report->memoize_vars);
     report->memoize_vars = nullptr;
-    bfree(undefined);
     bfree(preds);
     return true;
 }

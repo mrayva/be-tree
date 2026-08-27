@@ -130,11 +130,27 @@ bool betree_search_ids(const struct betree* tree, const char* event_str, struct 
 bool betree_search_with_event(const struct betree* betree, struct betree_event* event, struct report* report);
 bool betree_search_with_event_ids(const struct betree* betree, struct betree_event* event, struct report* report, const std::uint64_t* ids, std::size_t sz);
 
+// Like betree_search_with_event(), but `undefined_scratch` (a caller-owned
+// buffer of at least (this tree's attribute count + 63) / 64 uint64_t's -
+// see betree_refresh_undefined() in tree.hpp) is recomputed in place
+// instead of being allocated and freed fresh on every call - meant for a
+// caller doing many searches against the same tree back to back (e.g. one
+// per row of a batch). Does NOT reset `report` itself - call
+// betree_reset_report() first, exactly as make_report() is called once
+// for the non-reusing path.
+bool betree_search_with_event_reusing(const struct betree* betree,
+    struct betree_event* event, struct report* report, std::uint64_t* undefined_scratch);
+
 bool betree_exists(const struct betree* tree, const char* event_str);
 bool betree_exists_with_event(const struct betree* betree, struct betree_event* event);
 
 struct report* make_report(void);
 void free_report(struct report* report);
+// Resets an existing report for another search() call (see
+// betree_search_with_event_reusing()) instead of free_report()+
+// make_report() being called fresh every time. Does NOT free `report`
+// itself - the caller keeps owning it.
+void betree_reset_report(struct report* report);
 
 struct report_counting* make_report_counting(void);
 void free_report_counting(struct report_counting* report);

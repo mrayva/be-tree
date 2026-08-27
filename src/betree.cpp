@@ -1117,6 +1117,21 @@ struct betree_variable* betree_make_unfetched_variable(const char* name)
     return betree_make_variable(name, v);
 }
 
+void betree_update_boolean_variable(struct betree_variable* variable, bool value)
+{
+    variable->value.boolean_value = value;
+}
+
+void betree_update_integer_variable(struct betree_variable* variable, int64_t value)
+{
+    variable->value.integer_value = value;
+}
+
+void betree_update_float_variable(struct betree_variable* variable, double value)
+{
+    variable->value.float_value = value;
+}
+
 struct betree_variable_definition betree_get_variable_definition(struct betree* betree, size_t index)
 {
     struct attr_domain* d = betree->config->attr_domains[index];

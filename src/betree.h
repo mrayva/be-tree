@@ -181,6 +181,22 @@ struct betree_variable* betree_make_frequency_caps_variable(const char* name, st
 // silently treat it as a defined, zero-valued variable instead of unknown.
 struct betree_variable* betree_make_unfetched_variable(const char* name);
 
+// Overwrite an already-created scalar variable's value in place, instead of
+// allocating a fresh betree_variable via betree_make_{boolean,integer,float}
+// _variable() for what is otherwise the same attribute. `variable` must be
+// a non-null pointer previously returned by the matching betree_make_*_variable
+// (or a prior betree_update_*_variable) call for a variable of the SAME
+// value type - this is a raw field overwrite, not a type-checked "set":
+// it does not touch attr_var (the variable's name/resolved id, already
+// correct and unchanged) or value_type (also unchanged), only the scalar
+// payload itself. Meant for a caller that keeps its own variable objects
+// alive across many events (e.g. a per-slot reuse pool) instead of
+// recreating them every time - see betree_set_variable()'s own free-on-
+// replace behavior for how such a variable still gets attached to an event.
+void betree_update_boolean_variable(struct betree_variable* variable, bool value);
+void betree_update_integer_variable(struct betree_variable* variable, int64_t value);
+void betree_update_float_variable(struct betree_variable* variable, double value);
+
 struct betree_event* betree_make_event(const struct betree* betree);
 void betree_set_variable(struct betree_event* event, size_t index, struct betree_variable* variable);
 

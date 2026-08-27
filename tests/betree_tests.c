@@ -1436,6 +1436,74 @@ int test_float_no_point_in_expr()
     return 0;
 }
 
+int test_update_variable_in_place()
+{
+    // betree_update_{boolean,integer,float}_variable() exist so a caller
+    // that keeps its own betree_variable objects alive across many events
+    // (e.g. a per-slot reuse pool, avoiding betree_make_*_variable's
+    // allocation on every event) can overwrite an existing variable's
+    // value in place instead. Exercises all three scalar types, each
+    // updated (not recreated) between two searches whose answers differ,
+    // proving the update actually takes effect and the variable stays
+    // correctly attached to the event throughout - not just that the
+    // function runs without crashing.
+    struct betree* tree = betree_make();
+    betree_add_boolean_variable(tree, "b", false);
+    betree_add_integer_variable(tree, "i", false, 0, 100);
+    betree_add_float_variable(tree, "f", false, 0, 100.);
+
+    mu_assert(betree_insert(tree, 1, "b"), "");
+    mu_assert(betree_insert(tree, 2, "i > 50"), "");
+    mu_assert(betree_insert(tree, 3, "f > 50.0"), "");
+
+    struct betree_event* event = betree_make_event(tree);
+    struct betree_variable* bvar = betree_make_boolean_variable("b", false);
+    struct betree_variable* ivar = betree_make_integer_variable("i", 10);
+    struct betree_variable* fvar = betree_make_float_variable("f", 10.);
+    betree_set_variable(event, 0, bvar);
+    betree_set_variable(event, 1, ivar);
+    betree_set_variable(event, 2, fvar);
+
+    {
+        struct report* report = make_report();
+        mu_assert(betree_search_with_event(tree, event, report), "");
+        mu_assert(report->matched == 0, "nothing should match the initial low/false values");
+        free_report(report);
+    }
+
+    // Update all three IN PLACE, on the same pointers, without ever
+    // calling betree_free_variable/betree_make_*_variable or
+    // betree_set_variable again.
+    betree_update_boolean_variable(bvar, true);
+    betree_update_integer_variable(ivar, 75);
+    betree_update_float_variable(fvar, 75.5);
+
+    {
+        struct report* report = make_report();
+        mu_assert(betree_search_with_event(tree, event, report), "");
+        mu_assert(report->matched == 3, "all three should match after updating in place");
+        free_report(report);
+    }
+
+    // And back down again, proving this is genuinely reusable more than
+    // once, not just a single one-shot mutation.
+    betree_update_boolean_variable(bvar, false);
+    betree_update_integer_variable(ivar, 1);
+    betree_update_float_variable(fvar, 1.0);
+
+    {
+        struct report* report = make_report();
+        mu_assert(betree_search_with_event(tree, event, report), "");
+        mu_assert(report->matched == 0, "nothing should match after updating back down");
+        free_report(report);
+    }
+
+    betree_free_event(event);
+    betree_free(tree);
+
+    return 0;
+}
+
 int test_is_null()
 {
     struct betree* tree = betree_make();
@@ -1860,6 +1928,7 @@ int all_tests()
     mu_run_test(test_api);
     mu_run_test(test_inverted_binop);
     mu_run_test(test_float_no_point_in_expr);
+    mu_run_test(test_update_variable_in_place);
     mu_run_test(test_is_null);
     mu_run_test(test_bug_geo);
     mu_run_test(test_event_out_of_bound);

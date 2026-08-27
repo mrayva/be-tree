@@ -166,6 +166,45 @@ void verify_wrapper_event_api() {
             "event API clear did not make exists fail");
 }
 
+void verify_search_reusing() {
+    // Tree::search_reusing() exists so a caller doing many searches against
+    // the same tree back to back (e.g. one per row of a batch) can reuse
+    // its own report/undefined buffers instead of allocating fresh ones
+    // every call - exercises several searches in a row against the SAME
+    // report+undefined_scratch, with values changing between them
+    // (including a variable going in/out of scope entirely), proving the
+    // reused buffers are correctly recomputed each time rather than going
+    // stale.
+    be::Tree tree;
+    tree.add_boolean("flag", false).add_integer("age", true, 0, 120);
+    require(tree.insert(1, "flag"), "search_reusing setup insert 1 failed");
+    require(tree.insert(2, "age > 50"), "search_reusing setup insert 2 failed");
+    require(tree.insert(3, "age is null"), "search_reusing setup insert 3 failed");
+
+    auto event = tree.make_event();
+    event.set_boolean(0, false).set_integer(1, 10);
+
+    struct report* report = make_report();
+    std::vector<std::uint64_t> undefined(1, 0);
+
+    auto r1 = tree.search_reusing(event, report, undefined.data());
+    require(r1.empty(), "search_reusing initial low/false values should match nothing");
+
+    betree_reset_report(report);
+    event.set_boolean(0, true).set_integer(1, 75);
+    auto r2 = tree.search_reusing(event, report, undefined.data());
+    require(r2.size() == 2 && r2[0] == 1 && r2[1] == 2,
+            "search_reusing did not pick up updated values");
+
+    betree_reset_report(report);
+    event.clear(1);
+    auto r3 = tree.search_reusing(event, report, undefined.data());
+    require(r3.size() == 2 && r3[0] == 1 && r3[1] == 3,
+            "search_reusing did not recompute the undefined bitmap");
+
+    free_report(report);
+}
+
 void verify_wrapper_event_api_rejections() {
     be::Tree tree;
     tree.add_segments("seg", false)
@@ -359,6 +398,7 @@ int main() {
 
     verify_wrapper_rejections();
     verify_wrapper_event_api();
+    verify_search_reusing();
     verify_wrapper_event_api_rejections();
     verify_wrapper_event_list_setter_out_of_range();
     verify_wrapper_foreign_event_rejection();

@@ -539,6 +539,31 @@ public:
         return result;
     }
 
+    /**
+     * Like search(Event&), but reuses caller-owned buffers instead of
+     * allocating a fresh report and undefined-variable bitmap on every
+     * call - meant for a caller doing many searches against the same tree
+     * back to back (e.g. one per row of a batch). Caller must call
+     * betree_reset_report(report) before each call (see that function's own
+     * doc comment) - `undefined_scratch` needs no such reset, it's fully
+     * recomputed in place internally every call. `undefined_scratch` must
+     * point to at least as many uint64_t's as betree_refresh_undefined()
+     * requires for this tree's attribute count.
+     *
+     * Only matched subscription ids are returned, not a full SearchResult -
+     * `report`'s other stat fields (evaluated/memoized/shorted) are already
+     * directly readable by the caller, matching a-tree's own
+     * search_reusing() convention.
+     */
+    std::vector<std::uint64_t> search_reusing(
+        Event& event, struct report* report, std::uint64_t* undefined_scratch) const {
+        std::vector<std::uint64_t> result;
+        if (betree_search_with_event_reusing(tree_.get(), event.get(), report, undefined_scratch)) {
+            result.assign(report->subs, report->subs + report->matched);
+        }
+        return result;
+    }
+
     bool exists(Event& event) const {
         return betree_exists_with_event(tree_.get(), event.get());
     }

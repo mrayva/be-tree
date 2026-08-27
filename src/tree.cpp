@@ -2076,12 +2076,28 @@ void fill_event(const struct config* config, struct betree_event* event)
         if(pred == nullptr) {
             continue;
         }
-        betree_var_t var = try_get_id_for_attr(config, pred->attr_var.attr);
-        if(unlikely(var == INVALID_VAR)) {
-            std::fprintf(stderr, "Cannot find variable %s in config, aborting", pred->attr_var.attr);
-            std::abort();
+        // betree_set_variable() (called by the index-based C++ Event::set_*()
+        // wrappers) already resolves attr_var.var correctly, straight from
+        // event->config->attr_domains[index] - no name lookup needed. Only
+        // fall back to the name-based scan (try_get_id_for_attr: lowercases
+        // and strcmp's against every attribute in the schema, on top of an
+        // allocation for the lowercased copy) when a caller's variable
+        // genuinely doesn't have a resolved id yet - e.g. one built from
+        // JSON via make_event_from_string(), or set through some other path
+        // that only ever had the name to go on. Every event this codebase's
+        // own C++ wrapper builds already has var resolved, so this used to
+        // redo an O(attr_domain_count) string scan, unconditionally, for
+        // every attribute of every single search - real, measured cost on a
+        // tight per-row search loop.
+        betree_var_t var = pred->attr_var.var;
+        if(var == INVALID_VAR) {
+            var = try_get_id_for_attr(config, pred->attr_var.attr);
+            if(unlikely(var == INVALID_VAR)) {
+                std::fprintf(stderr, "Cannot find variable %s in config, aborting", pred->attr_var.attr);
+                std::abort();
+            }
+            pred->attr_var.var = var;
         }
-        pred->attr_var.var = var;
         struct attr_domain* domain = config->attr_domains[var];
         enum betree_value_type_e expected_type = domain->bound.value_type;
         enum betree_value_type_e actual_type = pred->value.value_type;
